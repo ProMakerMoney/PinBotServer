@@ -17,8 +17,11 @@ public class JwtUtil {
     // Секретный ключ для подписи JWT
     private static final String SECRET_KEY = "0JbQsNC90YHQnNCw0YDQutGB0JHRg9C60YDRj9C60YE="; // Замените на ваш секретный ключ
 
-    // Время жизни токена (1 день в миллисекундах)
-    private static final long EXPIRATION_TIME = 86400000;
+    // Время жизни токена (15 минут в миллисекундах)
+    private static final long EXPIRATION_TIME = 1000 * 60 * 15; // 15 минут
+
+    // Время жизни токена обновления (7 дней в миллисекундах)
+    private static final long REFRESH_EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 7; // 7 дней
 
     /**
      * Метод для получения ключа подписи
@@ -38,9 +41,31 @@ public class JwtUtil {
      */
     public String generateToken(String email) {
         // Построение и подпись JWT токена
+        return createToken(email, EXPIRATION_TIME);
+    }
+
+    /**
+     * Метод для генерации токена обновления
+     * @param email email пользователя, для которого генерируется токен обновления
+     * @return String токен обновления
+     */
+    public String generateRefreshToken(String email) {
+        // Построение и подпись токена обновления
+        return createToken(email, REFRESH_EXPIRATION_TIME);
+    }
+
+    /**
+     * Метод для создания JWT токена с заданным временем жизни
+     * @param subject субъект (email пользователя)
+     * @param expirationTime время жизни токена
+     * @return String JWT токен
+     */
+    private String createToken(String subject, long expirationTime) {
+        // Построение и подпись JWT токена
         return Jwts.builder()
-                .setSubject(email) // Установка субъекта (email пользователя)
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME)) // Установка времени жизни токена
+                .setSubject(subject) // Установка субъекта (email пользователя)
+                .setIssuedAt(new Date()) // Установка времени создания токена
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime)) // Установка времени жизни токена
                 .signWith(getSigningKey()) // Подпись токена ключом
                 .compact(); // Компактный формат токена
     }
@@ -52,12 +77,7 @@ public class JwtUtil {
      */
     public String extractEmail(String token) {
         // Парсинг токена и извлечение субъекта (email пользователя)
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey()) // Установка ключа для проверки подписи
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject(); // Получение субъекта из тела токена
+        return getClaims(token).getSubject();
     }
 
     /**
@@ -79,12 +99,31 @@ public class JwtUtil {
      */
     private boolean isTokenExpired(String token) {
         // Парсинг токена и проверка времени его истечения
+        return getClaims(token)
+                .getExpiration()
+                .before(new Date()); // Проверка, истек ли токен
+    }
+
+    /**
+     * Метод для извлечения claims из JWT токена
+     * @param token JWT токен
+     * @return Claims claims из токена
+     */
+    private Claims getClaims(String token) {
+        // Парсинг токена и извлечение claims
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey()) // Установка ключа для проверки подписи
                 .build()
                 .parseClaimsJws(token)
-                .getBody()
-                .getExpiration()
-                .before(new Date()); // Проверка, истек ли токен
+                .getBody();
+    }
+
+    /**
+     * Метод для валидации токена обновления
+     * @param token токен обновления
+     * @return boolean true, если токен валидный, иначе false
+     */
+    public boolean validateRefreshToken(String token) {
+        return !isTokenExpired(token);
     }
 }

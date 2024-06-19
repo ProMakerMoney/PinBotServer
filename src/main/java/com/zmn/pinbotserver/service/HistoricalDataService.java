@@ -8,8 +8,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -76,7 +74,7 @@ public class HistoricalDataService {
 
                 List<List<String>> klineData = bybitApiService.getKlineData(symbol, interval, start, end);
                 System.out.println("До поворота - " + klineData.get(0));
-                klineData.sort((a, b) -> Long.compare(Long.parseLong(b.get(0)), Long.parseLong(a.get(0)))); // Сортировка в обратном порядке
+                klineData=klineData.reversed(); // Сортировка в обратном порядке
                 System.out.println("После поворота - " + klineData.get(0));
 
                 // Технические выводы для ответа

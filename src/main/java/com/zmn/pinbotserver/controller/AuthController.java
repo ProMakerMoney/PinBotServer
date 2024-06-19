@@ -72,4 +72,25 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials"); // Возвращаем ошибку при неверных учетных данных
         }
     }
+
+    /**
+     * Метод для обновления JWT токена
+     * @param request карта с параметрами запроса (refreshToken)
+     * @return ResponseEntity с новым JWT токеном или сообщением об ошибке
+     */
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
+        String refreshToken = request.get("refreshToken");
+
+        // Проверка валидности токена обновления
+        if (jwtUtil.validateRefreshToken(refreshToken)) {
+            String email = jwtUtil.extractEmail(refreshToken);
+            String newToken = jwtUtil.generateToken(email);
+            Map<String, String> response = new HashMap<>();
+            response.put("token", newToken);
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token");
+        }
+    }
 }
