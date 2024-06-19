@@ -27,18 +27,24 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@Service
+@Service // Аннотация, обозначающая, что данный класс является сервисом в Spring
 public class DataFillerService {
 
-    private static final String BASE_URL = "https://api.bybit.com/v5/market/kline";
-    private static final String CATEGORY = "linear";
-    private final RestTemplate restTemplate;
+    private static final String BASE_URL = "https://api.bybit.com/v5/market/kline"; // Базовый URL для API
+    private static final String CATEGORY = "linear"; // Категория для запросов
+    private final RestTemplate restTemplate; // RestTemplate для выполнения HTTP запросов
 
-    @Autowired
+    @Autowired // Автоматическая инъекция зависимости от RestTemplate
     public DataFillerService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
+    /**
+     * Метод для чтения свечей из CSV файла
+     * @param filePath путь к файлу
+     * @return список свечей
+     * @throws IOException возможное исключение ввода-вывода
+     */
     public List<Candle> readCandlesFromCsv(Path filePath) throws IOException {
         List<Candle> candles = new ArrayList<>();
         try (BufferedReader reader = Files.newBufferedReader(filePath)) {
@@ -59,6 +65,12 @@ public class DataFillerService {
         return candles;
     }
 
+    /**
+     * Метод для валидации свечей
+     * @param candles список свечей
+     * @param timeframe таймфрейм
+     * @return true, если данные корректные и полные, иначе false
+     */
     public boolean validateCandles(List<Candle> candles, String timeframe) {
         Set<LocalDateTime> uniqueTimes = new HashSet<>();
         List<LocalDateTime> duplicateTimes = new ArrayList<>();
@@ -101,6 +113,11 @@ public class DataFillerService {
         return true; // Данные полные и корректные
     }
 
+    /**
+     * Метод для получения интервала в минутах на основе таймфрейма
+     * @param timeframe таймфрейм
+     * @return интервал в минутах
+     */
     private long getIntervalMinutes(String timeframe) {
         switch (timeframe) {
             case "1":
@@ -120,6 +137,15 @@ public class DataFillerService {
         }
     }
 
+    /**
+     * Метод для получения и записи свечей в CSV файл
+     * @param tradingPair торговая пара
+     * @param timeframe таймфрейм
+     * @param startDate начальная дата
+     * @param filePath путь к файлу
+     * @return список новых свечей
+     * @throws IOException возможное исключение ввода-вывода
+     */
     public List<Candle> fetchAndWriteCandles(String tradingPair, String timeframe, LocalDateTime startDate, Path filePath) throws IOException {
         List<Candle> newCandles = fetchCandles(tradingPair, timeframe, startDate);
         Set<LocalDateTime> existingTimes = new HashSet<>();
@@ -147,6 +173,13 @@ public class DataFillerService {
         return newCandles;
     }
 
+    /**
+     * Метод для получения свечей с API
+     * @param tradingPair торговая пара
+     * @param timeframe таймфрейм
+     * @param startDate начальная дата
+     * @return список свечей
+     */
     public List<Candle> fetchCandles(String tradingPair, String timeframe, LocalDateTime startDate) {
         List<Candle> allCandles = new ArrayList<>();
         LocalDateTime currentDate = startDate; // Начальная дата
@@ -199,6 +232,11 @@ public class DataFillerService {
         return allCandles; // Возвращаем полный список полученных свечей
     }
 
+    /**
+     * Метод для парсинга свечей из ответа API
+     * @param response ответ API в виде строки
+     * @return список свечей
+     */
     private List<Candle> parseCandles(String response) {
         List<Candle> candles = new ArrayList<>();
         try {
@@ -226,6 +264,11 @@ public class DataFillerService {
         return candles;
     }
 
+    /**
+     * Метод для получения максимального интервала в минутах на основе таймфрейма
+     * @param timeframe таймфрейм
+     * @return максимальный интервал в минутах
+     */
     private long getMaxInterval(String timeframe) {
         switch (timeframe) {
             case "1":

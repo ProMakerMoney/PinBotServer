@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@Service
+@Service // Аннотация, обозначающая, что данный класс является сервисом в Spring
 public class HistoricalDataService {
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -23,56 +23,61 @@ public class HistoricalDataService {
 
     private final BybitApiService bybitApiService;
 
-    @Autowired
+    @Autowired // Автоматическая инъекция зависимости от BybitApiService
     public HistoricalDataService(BybitApiService bybitApiService) {
         this.bybitApiService = bybitApiService;
     }
 
+    /**
+     * Метод для генерации файла с историческими данными
+     * @param symbol символ торговой пары
+     * @param interval таймфрейм
+     * @param startDate начальная дата
+     * @param endDate конечная дата
+     */
     public void generateHistoricalDataFile(String symbol, String interval, LocalDateTime startDate, LocalDateTime endDate) {
-        File dir = new File("historical_data");
+        File dir = new File(HISTORICAL_DATA_FOLDER);
         if (!dir.exists()) {
             dir.mkdir();
         }
 
-        String filename = String.format("historical_data/%s_%s_history.csv", symbol, interval); // Changed extension to .csv
+        String filename = String.format("%s/%s_%s_history.csv", HISTORICAL_DATA_FOLDER, symbol, interval);
         File file = new File(filename);
 
         if (file.exists()) {
             System.out.println("Файл найден: " + filename);
-            //return;
         }
 
-        //System.out.println("ПРОВЕРКА - " + checkDataFile(symbol, interval));
-
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-            //List<LocalDateTime[]> intervals = generateIntervals(startDate, endDate, interval);
-
-            // Write CSV header
+            // Записываем заголовок CSV файла
             writer.write("timestamp,open,high,low,close,volume,quote_volume");
             writer.newLine();
+
             LocalDateTime startTimePeriod = startDate;
             boolean flag = true;
-            while (flag){
+            while (flag) {
                 LocalDateTime endTimePeriod = startTimePeriod.plusMinutes(getMinutesPerCandle(interval));
 
-                if(endTimePeriod.isAfter(LocalDateTime.now())) {
+                if (endTimePeriod.isAfter(LocalDateTime.now())) {
                     System.out.println("СРАБОТАЛО УСЛОВИЕ ПОСЛЕДНЕГО ЗАПРОСА");
                     startTimePeriod = startTimePeriod.plusMinutes(15);
                     endTimePeriod = LocalDateTime.now();
                     flag = false;
                 }
+
                 // Вывод всех интервалов
                 System.out.printf("Интервал: %s - %s%n", startTimePeriod, endTimePeriod);
 
                 long start = startTimePeriod.toInstant(ZoneOffset.UTC).toEpochMilli();
                 long end = endTimePeriod.toInstant(ZoneOffset.UTC).toEpochMilli();
+
                 // Технические выводы для запроса
                 System.out.printf("Отправка запроса к бирже: symbol=%s, interval=%s, start=%d, end=%d%n", symbol, interval, start, end);
 
                 List<List<String>> klineData = bybitApiService.getKlineData(symbol, interval, start, end);
-                System.out.println("До поворота - " + klineData.getFirst());
-                klineData=klineData.reversed();
-                System.out.println("После поворота - " + klineData.getFirst());
+                System.out.println("До поворота - " + klineData.get(0));
+                klineData.sort((a, b) -> Long.compare(Long.parseLong(b.get(0)), Long.parseLong(a.get(0)))); // Сортировка в обратном порядке
+                System.out.println("После поворота - " + klineData.get(0));
 
                 // Технические выводы для ответа
                 if (!klineData.isEmpty()) {
@@ -90,13 +95,8 @@ public class HistoricalDataService {
                     writer.newLine();
                 }
 
-                //System.out.println("ПРОВЕРКА - " + checkDataFile(symbol, interval));
-
-
                 startTimePeriod = endTimePeriod;
             }
-
-
 
             System.out.println("Данные успешно записаны в файл: " + filename);
 
@@ -107,112 +107,108 @@ public class HistoricalDataService {
         System.out.println("ПРОВЕРКА - " + checkDataFile(symbol, interval));
     }
 
-
-
+    /**
+     * Метод для получения минут на свечу на основе таймфрейма
+     * @param timeframe таймфрейм
+     * @return количество минут на свечу
+     */
     private int getMinutesPerCandle(String timeframe) {
         switch (timeframe) {
             case "1":
-                return 1*MAX_CANDLES;
+                return 1 * MAX_CANDLES;
             case "3":
-                return 3*MAX_CANDLES;
+                return 3 * MAX_CANDLES;
             case "5":
-                return 5*MAX_CANDLES;
+                return 5 * MAX_CANDLES;
             case "15":
-                return 15*MAX_CANDLES;
+                return 15 * MAX_CANDLES;
             case "30":
-                return 30*MAX_CANDLES;
+                return 30 * MAX_CANDLES;
             case "60":
-                return 60*MAX_CANDLES;
+                return 60 * MAX_CANDLES;
             case "120":
-                return 120*MAX_CANDLES;
+                return 120 * MAX_CANDLES;
             case "240":
-                return 240*MAX_CANDLES;
+                return 240 * MAX_CANDLES;
             case "360":
-                return 360*MAX_CANDLES;
+                return 360 * MAX_CANDLES;
             case "720":
-                return 720*MAX_CANDLES;
+                return 720 * MAX_CANDLES;
             case "1D":
-                return 1440*MAX_CANDLES;
+                return 1440 * MAX_CANDLES;
             case "1W":
-                return 10080*MAX_CANDLES;
+                return 10080 * MAX_CANDLES;
             case "1M":
-                return 43200*MAX_CANDLES;
+                return 43200 * MAX_CANDLES;
             default:
                 throw new IllegalArgumentException("Неподдерживаемый таймфрейм: " + timeframe);
         }
     }
 
+    /**
+     * Метод для проверки файла данных
+     * @param symbol символ торговой пары
+     * @param interval таймфрейм
+     * @return результат проверки
+     */
     public Object checkDataFile(String symbol, String interval) {
-        // Формируем путь к файлу с использованием переданных параметров symbol и interval
         String filename = String.format("%s/%s_%s_history.csv", HISTORICAL_DATA_FOLDER, symbol, interval);
         File file = new File(filename);
 
-        // Проверяем, существует ли файл
         if (!file.exists()) {
             System.out.println("Файл не существует: " + filename);
             return false;
         }
 
-        // Проверяем содержимое файла
         return checkFileContent(file, interval);
     }
 
+    /**
+     * Метод для проверки содержимого файла данных
+     * @param file файл данных
+     * @param interval таймфрейм
+     * @return результат проверки
+     */
     private boolean checkFileContent(File file, String interval) {
-        // Создаем множество для хранения уникальных временных меток
         Set<Long> timestamps = new HashSet<>();
-
-
-        // Преобразуем интервал из строки в число минут
-        int minutes = Integer.parseInt(interval);
-        // Преобразуем интервал из минут в миллисекунды
+        int minutes = getMinutesPerCandle(interval) / MAX_CANDLES;
         long timeFrameMillis = minutes * 60 * 1000;
 
-        // Открываем файл для чтения
         long startTimeInFile;
         long endTimeInFile = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
-            // Пропускаем первую строку с заголовком
             br.readLine();
             line = br.readLine();
             String[] split = line.split(",");
-            long previousTimestamp = Long.parseLong(split[0]); // Переменная для хранения предыдущей временной метки
+            long previousTimestamp = Long.parseLong(split[0]);
             startTimeInFile = previousTimestamp;
 
-            // Читаем файл построчно
             while ((line = br.readLine()) != null) {
-                // Разделяем строку на массив строк по запятой
                 String[] data = line.split(",");
 
                 try {
-                    // Преобразуем первую строку массива (временную метку) в число
                     long timestamp = Long.parseLong(data[0]);
 
-                    // Проверка на дубликат временной метки
                     if (!timestamps.add(timestamp)) {
-                        // Если временная метка уже существует в множестве, выводим сообщение и продолжаем
                         System.out.println("Дублирующая запись найдена и удалена: " + line);
                         continue;
                     }
 
-                    // Проверка временного интервала
                     if (previousTimestamp != -1 && (timestamp - previousTimestamp != timeFrameMillis)) {
                         System.out.println("Неправильный временной интервал между записями: "
                                 + previousTimestamp + " и " + timestamp + ". Строка: " + line);
                         return false;
                     }
 
-                    // Обновляем предыдущую временную метку
                     previousTimestamp = timestamp;
                     endTimeInFile = timestamp;
                 } catch (NumberFormatException e) {
-                    // Обработка ошибки преобразования строки в число
                     System.out.println("Ошибка формата временной метки в строке: " + line);
                 }
             }
 
         } catch (IOException e) {
-            // Обработка исключений при чтении файла
             e.printStackTrace();
             return false;
         }
@@ -222,7 +218,6 @@ public class HistoricalDataService {
         System.out.println("В прочитанном файле: ");
         System.out.println("Начальное время: " + sTime.format(formatter) + " , а именно: " + startTimeInFile);
         System.out.println("Конечное время: " + eTime.format(formatter) + " , а именно: " + endTimeInFile);
-        // Если все проверки пройдены, возвращаем true
         return true;
     }
 }

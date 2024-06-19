@@ -6,7 +6,6 @@ import com.zmn.pinbotserver.BybitResponse;
 import com.zmn.pinbotserver.model.candle.Candle;
 import com.zmn.pinbotserver.strategy.ScalpingStrategyPro;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -16,20 +15,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Service
+@Service // Аннотация, обозначающая, что данный класс является сервисом в Spring
 public class PriceService {
 
-    @Autowired
+    @Autowired // Автоматическая инъекция зависимости от RestTemplate
     private RestTemplate restTemplate;
 
-    @Autowired
+    @Autowired // Автоматическая инъекция зависимости от ObjectMapper
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private TelegramBotService telegramBotService;
+    private Map<ScalpingStrategyPro, TradingPairInfo> strategyMap = new HashMap<>(); // Карта для хранения стратегий и информации о торговых парах
 
-    private Map<ScalpingStrategyPro, TradingPairInfo> strategyMap = new HashMap<>();
-
+    /**
+     * Метод для получения исторических свечей
+     * @param tradingPair торговая пара
+     * @param timeframe таймфрейм
+     * @return список свечей
+     */
     public List<Candle> getHistoricalCandles(String tradingPair, String timeframe) {
         long currentTime = System.currentTimeMillis();
         long startTime = currentTime - 4320 * 60000; // Начальное время на 3 дня назад от текущего времени
@@ -37,10 +39,10 @@ public class PriceService {
         String url = "https://api.bybit.com/derivatives/v3/public/kline?category=linear&symbol=" + tradingPair + "&interval=" + timeframe + "&start=" + startTime + "&end=" + endTime + "&limit=1000";
 
         try {
-            String response = restTemplate.getForObject(url, String.class);
-            List<Candle> candles = parseCandles(response);
-            candles = candles.reversed();
-            candles.removeLast();
+            String response = restTemplate.getForObject(url, String.class); // Выполняем запрос и получаем ответ в виде строки
+            List<Candle> candles = parseCandles(response); // Парсим ответ и получаем список свечей
+            candles = candles.reversed(); // Переворачиваем список свечей
+            candles.remove(candles.size() - 1); // Удаляем последнюю свечу
             return candles;
         } catch (Exception e) {
             e.printStackTrace();
@@ -48,14 +50,18 @@ public class PriceService {
         }
     }
 
+    /**
+     * Метод для запуска получения текущих данных
+     * @param strategy стратегия
+     * @param tradingPair торговая пара
+     * @param timeframe таймфрейм
+     */
     public void startFetchingData(ScalpingStrategyPro strategy, String tradingPair, String timeframe) {
-        strategyMap.put(strategy, new TradingPairInfo(tradingPair, timeframe));
+        strategyMap.put(strategy, new TradingPairInfo(tradingPair, timeframe)); // Добавляем стратегию и информацию о торговой паре в карту
     }
 
     @Scheduled(cron = "0 * * * * *", zone = "UTC") // Запускать каждую минуту по UTC
     public void fetchCurrentPrice() {
-
-
         for (Map.Entry<ScalpingStrategyPro, TradingPairInfo> entry : strategyMap.entrySet()) {
             ScalpingStrategyPro strategy = entry.getKey();
             TradingPairInfo info = entry.getValue();
@@ -63,11 +69,15 @@ public class PriceService {
         }
     }
 
+    /**
+     * Метод для получения и обновления стратегии текущими данными
+     * @param strategy стратегия
+     * @param tradingPair торговая пара
+     * @param timeframe таймфрейм
+     */
     private void fetchAndUpdateStrategy(ScalpingStrategyPro strategy, String tradingPair, String timeframe) {
-
         try {
-            // Задержка на 1000 миллисекунд (1 секунд)
-            Thread.sleep(1000);
+            Thread.sleep(1000); // Задержка на 1000 миллисекунд (1 секунд)
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -78,24 +88,30 @@ public class PriceService {
         String url = "https://api.bybit.com/derivatives/v3/public/kline?category=linear&symbol=" + tradingPair + "&interval=" + timeframe + "&start=" + startTime + "&end=" + endTime + "&limit=1000";
 
         try {
-            String response = restTemplate.getForObject(url, String.class);
-            List<Candle> candles = parseCandles(response);
-            candles = candles.reversed();
-            candles.removeLast();
-            //candles.removeLast();
+            String response = restTemplate.getForObject(url, String.class); // Выполняем запрос и получаем ответ в виде строки
+            List<Candle> candles = parseCandles(response); // Парсим ответ и получаем список свечей
+            candles = candles.reversed(); // Переворачиваем список свечей
+            candles.remove(candles.size() - 1); // Удаляем последнюю свечу
+
             if (!candles.isEmpty()) {
-                Candle latestCandle = candles.getLast();
+                Candle latestCandle = candles.get(candles.size() - 1); // Получаем последнюю свечу
                 System.out.println("Новая свеча - " + latestCandle.getTime() + " | Цена закрытия: " + latestCandle.getClose());
-                strategy.onPriceUpdate(latestCandle);
+                strategy.onPriceUpdate(latestCandle); // Обновляем стратегию новой свечой
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * Метод для парсинга свечей из JSON ответа
+     * @param json JSON строка с ответом
+     * @return список свечей
+     * @throws Exception возможные исключения
+     */
     private List<Candle> parseCandles(String json) throws Exception {
         List<Candle> candleList = new ArrayList<>();
-        BybitResponse response = objectMapper.readValue(json, BybitResponse.class);
+        BybitResponse response = objectMapper.readValue(json, BybitResponse.class); // Парсим JSON ответ
         if (response.getResult() != null && response.getResult().getList() != null) {
             for (List<String> candleData : response.getResult().getList()) {
                 long openTime = Long.parseLong(candleData.get(0));
@@ -105,13 +121,16 @@ public class PriceService {
                 double close = Double.parseDouble(candleData.get(4));
                 double volume = Double.parseDouble(candleData.get(5));
 
-                Candle candle = new Candle(openTime, open, high, low, close, volume);
-                candleList.add(candle);
+                Candle candle = new Candle(openTime, open, high, low, close, volume); // Создаем объект свечи
+                candleList.add(candle); // Добавляем свечу в список
             }
         }
         return candleList;
     }
 
+    /**
+     * Вспомогательный класс для хранения информации о торговой паре
+     */
     private static class TradingPairInfo {
         private String tradingPair;
         private String timeframe;
@@ -129,6 +148,4 @@ public class PriceService {
             return timeframe;
         }
     }
-
-
 }

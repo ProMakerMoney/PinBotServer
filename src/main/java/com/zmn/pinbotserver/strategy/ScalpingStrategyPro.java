@@ -3,7 +3,6 @@ package com.zmn.pinbotserver.strategy;
 import com.zmn.pinbotserver.model.candle.Candle;
 import com.zmn.pinbotserver.model.order.OrderManager;
 import com.zmn.pinbotserver.model.order.TYPE;
-import com.zmn.pinbotserver.service.TelegramBotService;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,43 +13,38 @@ import java.util.List;
 
 public class ScalpingStrategyPro {
 
-    private TelegramBotService telegramBotService;
-
-
-
-    double deposit;
-    double risk;
-    int leverage;
-    private final double COMMISSION = 0.1;
+    double deposit; // Начальный депозит
+    double risk; // Риск на сделку
+    int leverage; // Плечо
+    private final double COMMISSION = 0.1; // Комиссия
 
     @Getter
-    OrderManager orderManager;
-    double currentDeposit;
-    double currentPrice;
-    LocalDateTime currentTime;
+    OrderManager orderManager; // Менеджер ордеров
+    double currentDeposit; // Текущий депозит
+    double currentPrice; // Текущая цена
+    LocalDateTime currentTime; // Текущее время
 
-    List<Candle> candleHistory = new ArrayList<>();
+    List<Candle> candleHistory = new ArrayList<>(); // История свечей
 
-    int MINIMUM_CANDLES;
+    int MINIMUM_CANDLES; // Минимальное количество свечей для расчетов
     int CCI_PERIOD; // Период для CCI
-    final int MAX_CANDLES = 200;
+    final int MAX_CANDLES = 200; // Максимальное количество свечей в истории
 
-    int EMA_PERIOD;
+    int EMA_PERIOD; // Период для EMA
 
-    double upperBound;
-    double lowerBound;
+    double upperBound; // Верхняя граница для CCI
+    double lowerBound; // Нижняя граница для CCI
 
-    private List<Double> emaValues = new ArrayList<>();
+    private List<Double> emaValues = new ArrayList<>(); // Список значений EMA
 
-    private String tradingPair; // Новое поле для хранения информации о торговой паре
+    private String tradingPair; // Торговая пара
     private int maxOrders; // Максимальное количество сделок
 
     @Setter
     private boolean sendMessages = false; // Флаг для управления отправкой сообщений
 
 
-    public ScalpingStrategyPro(TelegramBotService telegramBotService, double deposit, double risk, int leverage, int cciPeriod, int emaPeriod, double ratio, String tradingPair, int maxOrders) {
-        this.telegramBotService = telegramBotService;
+    public ScalpingStrategyPro(double deposit, double risk, int leverage, int cciPeriod, int emaPeriod, double ratio, String tradingPair, int maxOrders) {
         this.deposit = deposit;
         this.risk = risk;
         this.leverage = leverage;
@@ -61,10 +55,16 @@ public class ScalpingStrategyPro {
         this.EMA_PERIOD = emaPeriod;
         this.upperBound = 100 * ratio;
         this.lowerBound = -100 * ratio;
-        this.tradingPair = tradingPair; // Инициализируем новое поле
+        this.tradingPair = tradingPair;
         this.maxOrders = maxOrders;
     }
 
+    /**
+     * Метод для расчета EMA
+     * @param newValue новое значение для включения в расчет
+     * @param period период EMA
+     * @return рассчитанное значение EMA
+     */
     public double calculateEMA(double newValue, int period) {
         if (emaValues.isEmpty()) {
             emaValues.add(newValue);
@@ -78,15 +78,15 @@ public class ScalpingStrategyPro {
         }
     }
 
+    /**
+     * Метод, вызываемый при обновлении цены
+     * @param candle новая свеча
+     */
     public void onPriceUpdate(Candle candle) {
         if (!candleHistory.contains(candle)) {
             currentPrice = candle.getClose();
             currentTime = candle.getTime();
             candleHistory.add(candle);
-            if (sendMessages) {
-                System.out.println("Свеча получена!\n\n" + candle + "\n\nАнализирую...");
-                telegramBotService.sendMessageToTelegram("Свеча получена!\n\n" + candle + "\n\nАнализирую...");
-            }
         } else {
             System.out.println("Свеча в списке уже есть!");
             return;
@@ -98,15 +98,11 @@ public class ScalpingStrategyPro {
         }
 
         if (candleHistory.size() > MAX_CANDLES) {
-            candleHistory.removeFirst(); // Удаляем самую старую свечу
+            candleHistory.remove(0); // Удаляем самую старую свечу
         }
 
         double newCCI = calculateCCI(); // Рассчитываем новое значение CCI
         double newEMA = calculateEMA(newCCI, EMA_PERIOD); // Рассчитываем EMA для нового значения CCI
-
-        if (sendMessages) {
-            telegramBotService.sendMessageToTelegram("||| CCI =  " + newCCI + "\n EMA = " + newEMA + " |||");
-        }
 
         manageOrders(newCCI, newEMA); // Обработка логики ордеров
 
@@ -130,7 +126,11 @@ public class ScalpingStrategyPro {
 
     double liquidationLevelPer = (double) 100 / leverage;
 
-
+    /**
+     * Метод для управления ордерами
+     * @param cci текущее значение CCI
+     * @param ema текущее значение EMA
+     */
     private void manageOrders(double cci, double ema) {
         double profit = 0;
 
@@ -147,9 +147,6 @@ public class ScalpingStrategyPro {
             profit += orderManager.closeAllOrdersOfType(TYPE.LONG, currentPrice, currentTime);
             double netMovement = calculateNetPercentageMovement(currentAverageEntryPrice, currentPrice, TYPE.LONG);
             updateCurrentDeposit(profit);
-            if (sendMessages) {
-                telegramBotService.sendMessageToTelegram("Ликвидация всех LONG ордеров. Убыток: " + profit + ". Чистое движение: " + netMovement + "%");
-            }
         }
 
         // Ликвидация SHORT ордеров, если цена достигает уровня ликвидации
@@ -157,30 +154,20 @@ public class ScalpingStrategyPro {
             profit += orderManager.closeAllOrdersOfType(TYPE.SHORT, currentPrice, currentTime);
             double netMovement = calculateNetPercentageMovement(currentAverageEntryPrice, currentPrice, TYPE.SHORT);
             updateCurrentDeposit(profit);
-            if (sendMessages) {
-                telegramBotService.sendMessageToTelegram("Ликвидация всех SHORT ордеров. Убыток: " + profit + ". Чистое движение: " + netMovement + "%");
-            }
         }
 
         // Проверка условий для открытия первой LONG позиции
         if (cci < lowerBound && !longIsOpen && !longIsReadyAVG && openOrders == 0 && !longIsReady) {
             longIsReady = true; // Устанавливаем флаг готовности для открытия первого LONG
-            if (sendMessages) {
-                telegramBotService.sendMessageToTelegram("Приготовились открывать LONG!");
-            }
         }
 
         // Открытие первого LONG ордера при выполнении условий
         if (longIsReady && cci > ema && !longIsReadyAVG && !longIsOpen && cci <= upperBound) {
-
             orderManager.openOrder(TYPE.LONG, currentPrice, currentTime, calculateMargin(), COMMISSION, leverage);
             last_long_price = currentPrice;
             longIsReady = false;
             longIsOpen = true;
             openOrders++;
-            if (sendMessages) {
-                telegramBotService.sendMessageToTelegram("Открытие LONG по цене: " + currentPrice);
-            }
         }
 
         // Установка флага, если CCI возвращается в зону
@@ -191,28 +178,19 @@ public class ScalpingStrategyPro {
         // Проверка условий для усреднения LONG позиции
         if (longIsOpen && openOrders <= maxOrders && cciLongRollback && cci < lowerBound) {
             longIsReadyAVG = true; // Устанавливаем флаг готовности для усреднения LONG
-            if (sendMessages) {
-                telegramBotService.sendMessageToTelegram("Приготовились усреднять LONG!");
-            }
         }
 
         // Открытие усредняющего LONG ордера при выполнении условий
         if (longIsReadyAVG && cci > ema && currentPrice < last_long_price) {
-
             orderManager.openOrder(TYPE.LONG, currentPrice, currentTime, calculateMargin(), COMMISSION, leverage);
             last_long_price = currentPrice;
             longIsReadyAVG = false;
             cciLongRollback = false;
             openOrders++;
-            if (sendMessages) {
-                telegramBotService.sendMessageToTelegram("Усредняем LONG по цене: " + currentPrice + "\nУсреднение " + (openOrders - 1) + " из " + maxOrders);
-            }
         }
 
         // Закрытие всех LONG ордеров при достижении верхней границы CCI
         if (openOrders > 0 && cci > upperBound && activeLongOrders > 0) {
-
-
             profit = orderManager.closeAllOrdersOfType(TYPE.LONG, currentPrice, currentTime);
             double netMovement = calculateNetPercentageMovement(currentAverageEntryPrice, currentPrice, TYPE.LONG);
             longIsOpen = false;
@@ -221,30 +199,20 @@ public class ScalpingStrategyPro {
             cciLongRollback = false;
             openOrders = 0;
             updateCurrentDeposit(profit);
-            if (sendMessages) {
-                telegramBotService.sendMessageToTelegram("Закрытие всех LONG ордеров по цене: " + currentPrice + ". \nПрибыль/убыток: " + profit + ". \nЧистое движение: " + netMovement + "%");
-            }
         }
 
         // Проверка условий для открытия первой SHORT позиции
         if (cci > upperBound && !shortIsOpen && !shortIsReadyAVG && openOrders == 0 && !shortIsReady) {
             shortIsReady = true; // Устанавливаем флаг готовности для открытия первого SHORT
-            if (sendMessages) {
-                telegramBotService.sendMessageToTelegram("Приготовились открывать SHORT!");
-            }
         }
 
         // Открытие первого SHORT ордера при выполнении условий
         if (shortIsReady && cci < ema && !shortIsReadyAVG && !shortIsOpen && cci >= lowerBound) {
-
             orderManager.openOrder(TYPE.SHORT, currentPrice, currentTime, calculateMargin(), COMMISSION, leverage);
             last_short_price = currentPrice;
             shortIsReady = false;
             shortIsOpen = true;
             openOrders++;
-            if (sendMessages) {
-                telegramBotService.sendMessageToTelegram("Открытие SHORT по цене: " + currentPrice);
-            }
         }
 
         // Установка флага, если CCI возвращается в зону
@@ -255,28 +223,19 @@ public class ScalpingStrategyPro {
         // Проверка условий для усреднения SHORT позиции
         if (shortIsOpen && openOrders <= maxOrders && cciShortRollback && cci > upperBound) {
             shortIsReadyAVG = true; // Устанавливаем флаг готовности для усреднения SHORT
-            if (sendMessages) {
-                telegramBotService.sendMessageToTelegram("Приготовились усреднять SHORT!");
-            }
         }
 
         // Открытие усредняющего SHORT ордера при выполнении условий
         if (shortIsReadyAVG && cci < ema && currentPrice > last_short_price) {
-
             orderManager.openOrder(TYPE.SHORT, currentPrice, currentTime, calculateMargin(), COMMISSION, leverage);
             last_short_price = currentPrice;
             shortIsReadyAVG = false;
             cciShortRollback = false;
             openOrders++;
-            if (sendMessages) {
-                telegramBotService.sendMessageToTelegram("Усредняем SHORT по цене: " + currentPrice + "\nУсреднение " + (openOrders - 1) + " из " + maxOrders);
-            }
         }
 
         // Закрытие всех SHORT ордеров при достижении нижней границы CCI
         if (openOrders > 0 && cci < lowerBound && activeShortOrders > 0) {
-
-
             profit = orderManager.closeAllOrdersOfType(TYPE.SHORT, currentPrice, currentTime);
             double netMovement = calculateNetPercentageMovement(currentAverageEntryPrice, currentPrice, TYPE.SHORT);
             shortIsOpen = false;
@@ -284,13 +243,16 @@ public class ScalpingStrategyPro {
             shortIsReadyAVG = false;
             openOrders = 0;
             updateCurrentDeposit(profit);
-            if (sendMessages) {
-                telegramBotService.sendMessageToTelegram("Закрытие всех SHORT ордеров по цене: " + currentPrice + ". \nПрибыль/убыток: " + profit + ". \nЧистое движение: " + netMovement + "%");
-            }
         }
     }
 
-    // Метод для расчета совокупного чистого движения
+    /**
+     * Метод для расчета совокупного чистого движения
+     * @param averageEntryPrice средняя цена входа
+     * @param exitPrice цена выхода
+     * @param type тип ордера (LONG или SHORT)
+     * @return процентное движение
+     */
     private double calculateNetPercentageMovement(double averageEntryPrice, double exitPrice, TYPE type) {
         double percentageMovement = 0;
         if (type == TYPE.LONG) {
@@ -301,8 +263,12 @@ public class ScalpingStrategyPro {
         return percentageMovement;
     }
 
+    /**
+     * Метод для расчета CCI
+     * @return рассчитанное значение CCI
+     */
     public double calculateCCI() {
-        int period = CCI_PERIOD; // 20
+        int period = CCI_PERIOD; // Период для CCI
         if (candleHistory.size() < period) {
             System.out.println("Not enough data to calculate CCI.");
             return 0;
@@ -327,16 +293,26 @@ public class ScalpingStrategyPro {
         return cci;
     }
 
+    /**
+     * Метод для расчета маржи
+     * @return рассчитанное значение маржи
+     */
     public double calculateMargin() {
         double margin = (currentDeposit * risk * leverage) / (100 * maxOrders);
         return Math.max(margin, 0); // Гарантируем, что маржа не может быть меньше нуля
     }
 
+    /**
+     * Метод для обновления текущего депозита
+     * @param profit прибыль, которую нужно добавить к депозиту
+     */
     public void updateCurrentDeposit(double profit) {
         currentDeposit += profit;
     }
 
-    // Новый метод для вывода состояния стратегии
+    /**
+     * Метод для вывода состояния стратегии
+     */
     private void printStrategyState() {
         StringBuilder state = new StringBuilder();
         state.append("Стратегия для торговой пары ").append(tradingPair).append(": \n");
@@ -366,8 +342,5 @@ public class ScalpingStrategyPro {
         }
 
         System.out.println(state.toString());
-        if (sendMessages) {
-            telegramBotService.sendMessageToTelegram(state.toString());
-        }
     }
 }

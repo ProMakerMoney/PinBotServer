@@ -8,24 +8,38 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.sql.DataSource;
 
-@Configuration
+@Configuration // Аннотация, обозначающая, что данный класс является конфигурационным для Spring
 public class AppConfig {
-    @Bean // Объявляем создание бина
+
+    /**
+     * Создание бина RestTemplate
+     * @return новый экземпляр RestTemplate
+     */
+    @Bean // Аннотация, обозначающая, что данный метод создает бин
     public RestTemplate restTemplate() {
         return new RestTemplate(); // Создаем и возвращаем новый экземпляр RestTemplate
     }
 
-    @Bean // Объявляем создание бина DataSource
+    /**
+     * Создание бина DataSource для подключения к базе данных PostgreSQL
+     * @return новый экземпляр DriverManagerDataSource, настроенный для подключения к базе данных PostgreSQL
+     */
+    @Bean // Аннотация, обозначающая, что данный метод создает бин DataSource
     public DataSource dataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName("org.postgresql.Driver"); // Укажите драйвер PostgreSQL
-        dataSource.setUrl("jdbc:postgresql://localhost:5432/pinbotDB"); // Укажите URL вашей базы данных PostgreSQL
-        dataSource.setUsername("postgres"); // Укажите имя пользователя для вашей базы данных PostgreSQL
-        dataSource.setPassword("9278"); // Укажите пароль для вашей базы данных PostgreSQL
+        dataSource.setDriverClassName("org.postgresql.Driver"); // Указываем драйвер PostgreSQL
+        dataSource.setUrl("jdbc:postgresql://localhost:5432/pinbotDB"); // Указываем URL базы данных PostgreSQL
+        dataSource.setUsername("postgres"); // Указываем имя пользователя для базы данных PostgreSQL
+        dataSource.setPassword("9278"); // Указываем пароль для базы данных PostgreSQL
         return dataSource;
     }
 
-    @Bean // Объявляем создание бина JdbcTemplate
+    /**
+     * Создание бина JdbcTemplate
+     * @param dataSource источник данных, передаваемый в бин
+     * @return новый экземпляр JdbcTemplate, настроенный с DataSource
+     */
+    @Bean // Аннотация, обозначающая, что данный метод создает бин JdbcTemplate
     public JdbcTemplate jdbcTemplate(DataSource dataSource) {
         return new JdbcTemplate(dataSource); // Создаем и возвращаем новый экземпляр JdbcTemplate с DataSource
     }

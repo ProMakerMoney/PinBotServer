@@ -13,7 +13,6 @@ public class CandleService {
 
     private CandleRepository candleStorage;
 
-
     public void createTableForCoin(String coin){
         candleStorage.createTableForCoin(coin);
     }

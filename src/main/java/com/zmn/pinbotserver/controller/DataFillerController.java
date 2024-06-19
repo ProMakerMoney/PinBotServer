@@ -12,16 +12,22 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@RestController
-@RequestMapping("/api/data")
-@RequiredArgsConstructor
+@RestController // Аннотация, обозначающая, что данный класс является контроллером Spring RESTful веб-сервиса
+@RequestMapping("/api/data") // Базовый URL для всех методов данного контроллера
+@RequiredArgsConstructor // Аннотация Lombok, создающая конструктор с обязательными аргументами для final полей
 public class DataFillerController {
 
-    private final DataFillerService dataFillerService;
+    private final DataFillerService dataFillerService; // Сервис для работы с данными
 
-
-    // Метод для получения свечных данных
-    @GetMapping("/fetchCandles")
+    /**
+     * Метод для получения свечных данных
+     * @param tradingPair торговая пара
+     * @param timeframe таймфрейм
+     * @param start начальная дата в формате строки
+     * @return список свечей
+     * @throws IOException возможное исключение ввода-вывода
+     */
+    @GetMapping("/fetchCandles") // Обрабатывает HTTP GET запросы по URL /api/data/fetchCandles
     public List<Candle> fetchCandles(@RequestParam String tradingPair, @RequestParam String timeframe,
                                      @RequestParam String start) throws IOException {
         // Преобразование строки с начальной датой в объект LocalDateTime

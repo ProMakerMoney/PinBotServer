@@ -1,6 +1,7 @@
 package com.zmn.pinbotserver.service;
 
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -13,37 +14,37 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-@Service
+@Service // Аннотация, обозначающая, что данный класс является сервисом в Spring
 public class StartupCheckService {
 
     private String backupDiskPath;
-
-    private String exchangeApiUrl = "https://api.bybit.com/v5/market/time";
-
-    private String databaseUrl = "jdbc:postgresql://localhost:5432/pinbotDB";
-
-    private String databaseUsername = "postgres";
-
-    private String databasePassword = "9278";
+    private String exchangeApiUrl = "https://api.bybit.com/v5/market/time"; // URL для проверки соединения с биржей
+    private String databaseUrl = "jdbc:postgresql://localhost:5432/pinbotDB"; // URL для подключения к базе данных
+    private String databaseUsername = "postgres"; // Имя пользователя базы данных
+    private String databasePassword = "9278"; // Пароль базы данных
 
     private final RestTemplate restTemplate;
     private final JdbcTemplate jdbcTemplate;
 
+    @Autowired // Автоматическая инъекция зависимостей
     public StartupCheckService(RestTemplate restTemplate, JdbcTemplate jdbcTemplate) {
         this.restTemplate = restTemplate;
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    @PostConstruct
+    @PostConstruct // Аннотация, обозначающая, что метод должен быть выполнен после инициализации бина
     public void performStartupChecks() {
-        checkInternetConnection();
-        checkExchangeConnection();
-        checkDatabaseConnection();
-        checkBackupSystem();
-        checkAndCreateCoinsTable();
-        checkAndCreateUsersTable(); // Добавляем вызов метода для проверки и создания таблицы users
+        checkInternetConnection(); // Проверка интернет-соединения
+        checkExchangeConnection(); // Проверка соединения с биржей
+        checkDatabaseConnection(); // Проверка соединения с базой данных
+        checkBackupSystem(); // Проверка системы бэкапов
+        checkAndCreateCoinsTable(); // Проверка и создание таблицы coins
+        checkAndCreateUsersTable(); // Проверка и создание таблицы users
     }
 
+    /**
+     * Метод для проверки и создания таблицы users
+     */
     private void checkAndCreateUsersTable() {
         String checkTableExistsQuery = "SELECT EXISTS (" +
                 "SELECT FROM information_schema.tables " +
@@ -68,6 +69,9 @@ public class StartupCheckService {
         }
     }
 
+    /**
+     * Метод для проверки и создания таблицы coins
+     */
     private void checkAndCreateCoinsTable() {
         String checkTableExistsQuery = "SELECT EXISTS (" +
                 "SELECT FROM information_schema.tables " +
@@ -96,6 +100,9 @@ public class StartupCheckService {
         }
     }
 
+    /**
+     * Метод для проверки интернет-соединения
+     */
     private void checkInternetConnection() {
         final String GREEN_TEXT = "\u001B[32m";
         final String RESET_TEXT = "\u001B[0m";
@@ -108,7 +115,9 @@ public class StartupCheckService {
         }
     }
 
-
+    /**
+     * Метод для проверки соединения с биржей
+     */
     private void checkExchangeConnection() {
         final String GREEN_TEXT = "\u001B[32m";
         final String RED_TEXT = "\u001B[31m";
@@ -126,8 +135,10 @@ public class StartupCheckService {
         }
     }
 
+    /**
+     * Метод для проверки соединения с базой данных
+     */
     public void checkDatabaseConnection() {
-        // ANSI escape codes for colors
         String ANSI_GREEN = "\u001B[32m";
         String ANSI_RED = "\u001B[31m";
         String ANSI_RESET = "\u001B[0m";
@@ -143,6 +154,9 @@ public class StartupCheckService {
         }
     }
 
+    /**
+     * Метод для проверки системы бэкапов
+     */
     private void checkBackupSystem() {
         final String ORANGE_TEXT = "\u001B[33m"; // Код оранжевого цвета (yellow в ANSI)
         final String RESET_TEXT = "\u001B[0m"; // Сброс цвета
@@ -151,20 +165,16 @@ public class StartupCheckService {
         System.out.println(ORANGE_TEXT + "Система бэкапов: Находится в разработке" + RESET_TEXT);
 
         // Пример будущей проверки (сейчас закомментирована)
-    /*
-    try {
-        if (Files.exists(Paths.get(backupDiskPath)) && Files.isWritable(Paths.get(backupDiskPath))) {
-            System.out.println("Система бэкапов: ОК");
-        } else {
+        /*
+        try {
+            if (Files.exists(Paths.get(backupDiskPath)) && Files.isWritable(Paths.get(backupDiskPath))) {
+                System.out.println("Система бэкапов: ОК");
+            } else {
+                System.err.println("Система бэкапов: НЕ УДАЛОСЬ");
+            }
+        } catch (Exception e) {
             System.err.println("Система бэкапов: НЕ УДАЛОСЬ");
         }
-    } catch (Exception e) {
-        System.err.println("Система бэкапов: НЕ УДАЛОСЬ");
+        */
     }
-    */
-    }
-
-
-
-
 }
