@@ -1,0 +1,60 @@
+package com.zmn.pinbotserver.controller;
+
+import com.zmn.pinbotserver.model.candle.Candle;
+import com.zmn.pinbotserver.service.DataFillerService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/data")
+@RequiredArgsConstructor
+public class DataFillerController {
+
+    private final DataFillerService dataFillerService;
+
+
+    // Метод для получения свечных данных
+    @GetMapping("/fetchCandles")
+    public List<Candle> fetchCandles(@RequestParam String tradingPair, @RequestParam String timeframe,
+                                     @RequestParam String start) throws IOException {
+        // Преобразование строки с начальной датой в объект LocalDateTime
+        LocalDateTime startDate = LocalDateTime.parse(start);
+
+        // Формирование имени файла на основе торговой пары и таймфрейма
+        String fileName = tradingPair + "_" + timeframe + "_history.csv";
+
+        // Указание пути к файлу CSV
+        Path filePath = Paths.get("C:\\Users\\dev-n\\IdeaProjects\\PinBotServer\\historical_data", fileName);
+
+        // Проверка, существует ли файл. Если не существует, создаем его.
+        if (Files.notExists(filePath)) {
+            Files.createFile(filePath);
+        }
+
+        // Чтение существующих свечей из файла CSV
+        List<Candle> existingCandles = dataFillerService.readCandlesFromCsv(filePath);
+
+        // Если файл пустой, загружаем и записываем новые свечи с указанной начальной даты
+        if (existingCandles.isEmpty()) {
+            return dataFillerService.fetchAndWriteCandles(tradingPair, timeframe, startDate, filePath);
+        } else {
+            // Проверка целостности данных в файле
+            boolean isValid = dataFillerService.validateCandles(existingCandles, timeframe);
+            if (!isValid) {
+                // Если данные невалидные, выбрасываем исключение
+                throw new RuntimeException("Invalid candle sequence in CSV file.");
+            }
+            // Получаем время последней свечи из существующих данных
+            LocalDateTime lastCandleTime = existingCandles.get(existingCandles.size() - 1).getTime();
+            // Загружаем и записываем новые свечи начиная с времени последней свечи
+            return dataFillerService.fetchAndWriteCandles(tradingPair, timeframe, lastCandleTime, filePath);
+        }
+    }
+}
