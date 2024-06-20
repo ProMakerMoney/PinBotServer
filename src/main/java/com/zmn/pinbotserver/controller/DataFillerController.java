@@ -47,16 +47,17 @@ public class DataFillerController {
         // Чтение существующих свечей из файла CSV
         List<Candle> existingCandles = dataFillerService.readCandlesFromCsv(filePath);
 
-        // Если файл пустой, загружаем и записываем новые свечи с указанной начальной даты
+        // Проверка целостности данных в файле
+        boolean isValid = dataFillerService.validateCandles(existingCandles, timeframe);
+        if (!isValid) {
+            // Если данные невалидные, выбрасываем исключение
+            throw new RuntimeException("Invalid candle sequence in CSV file.");
+        }
+
+        // Если файл пустой или данные валидны, загружаем и записываем новые свечи с указанной начальной даты
         if (existingCandles.isEmpty()) {
             return dataFillerService.fetchAndWriteCandles(tradingPair, timeframe, startDate, filePath);
         } else {
-            // Проверка целостности данных в файле
-            boolean isValid = dataFillerService.validateCandles(existingCandles, timeframe);
-            if (!isValid) {
-                // Если данные невалидные, выбрасываем исключение
-                throw new RuntimeException("Invalid candle sequence in CSV file.");
-            }
             // Получаем время последней свечи из существующих данных
             LocalDateTime lastCandleTime = existingCandles.get(existingCandles.size() - 1).getTime();
             // Загружаем и записываем новые свечи начиная с времени последней свечи
