@@ -1,5 +1,6 @@
 package com.zmn.pinbotserver.service;
 
+import com.zmn.pinbotserver.model.candle.Candle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -8,9 +9,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Service // Аннотация, обозначающая, что данный класс является сервисом в Spring
 public class HistoricalDataService {
@@ -33,67 +32,79 @@ public class HistoricalDataService {
      * @param startDate начальная дата
      * @param endDate конечная дата
      */
-    public void generateHistoricalDataFile(String symbol, String interval, LocalDateTime startDate, LocalDateTime endDate) {
+    public List<Candle> generateHistoricalDataFile(String symbol, String interval, LocalDateTime startDate, LocalDateTime endDate) {
+        System.out.println("Зашло в метод с параметрами: " + symbol + ", " + interval + ", " + startDate + ", " + endDate);
         File dir = new File(HISTORICAL_DATA_FOLDER);
         if (!dir.exists()) {
-            dir.mkdir();
+            dir.mkdir(); // Создаем директорию, если она не существует
         }
 
         String filename = String.format("%s/%s_%s_history.csv", HISTORICAL_DATA_FOLDER, symbol, interval);
         File file = new File(filename);
 
-        if (file.exists()) {
-            System.out.println("Файл найден: " + filename);
+        List<Candle> allCandles = new ArrayList<>(); // Список для хранения всех свечей
+        Set<Long> existingTimestamps = new HashSet<>(); // Множество для хранения существующих временных меток
+
+        // Чтение существующего файла CSV для сбора временных меток
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("timestamp")) continue; // Пропускаем заголовок
+                String[] fields = line.split(",");
+                long timestamp = Long.parseLong(fields[0]);
+                existingTimestamps.add(timestamp); // Добавляем временную метку в множество
+            }
+        } catch (IOException e) {
+            System.err.println("Ошибка при чтении файла: " + e.getMessage());
         }
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-            // Записываем заголовок CSV файла
-            writer.write("timestamp,open,high,low,close,volume,quote_volume");
-            writer.newLine();
+        // Открываем файл для записи данных
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
+            if (file.length() == 0) {
+                // Записываем заголовок CSV файла, если файл пуст
+                writer.write("timestamp,open,high,low,close,volume,quote_volume");
+                writer.newLine();
+            }
 
             LocalDateTime startTimePeriod = startDate;
             boolean flag = true;
+
             while (flag) {
                 LocalDateTime endTimePeriod = startTimePeriod.plusMinutes(getMinutesPerCandle(interval));
 
-                if (endTimePeriod.isAfter(LocalDateTime.now())) {
-                    System.out.println("СРАБОТАЛО УСЛОВИЕ ПОСЛЕДНЕГО ЗАПРОСА");
-                    startTimePeriod = startTimePeriod.plusMinutes(15);
-                    endTimePeriod = LocalDateTime.now();
+                // Проверка, чтобы конечное время не превышало заданную конечную дату
+                if (endTimePeriod.isAfter(endDate)) {
+                    endTimePeriod = endDate;
                     flag = false;
                 }
-
-                // Вывод всех интервалов
-                System.out.printf("Интервал: %s - %s%n", startTimePeriod, endTimePeriod);
 
                 long start = startTimePeriod.toInstant(ZoneOffset.UTC).toEpochMilli();
                 long end = endTimePeriod.toInstant(ZoneOffset.UTC).toEpochMilli();
 
-                // Технические выводы для запроса
-                System.out.printf("Отправка запроса к бирже: symbol=%s, interval=%s, start=%d, end=%d%n", symbol, interval, start, end);
-
+                // Получение данных свечей (K-line) из API Bybit
                 List<List<String>> klineData = bybitApiService.getKlineData(symbol, interval, start, end);
-                System.out.println("До поворота - " + klineData.get(0));
-                klineData=klineData.reversed(); // Сортировка в обратном порядке
-                System.out.println("После поворота - " + klineData.get(0));
+                Collections.reverse(klineData); // Переворачиваем данные, чтобы они шли в хронологическом порядке
 
-                // Технические выводы для ответа
-                if (!klineData.isEmpty()) {
-                    System.out.println("Получен ответ от биржи:");
-                    LocalDateTime firstCandleTime = LocalDateTime.ofEpochSecond(Long.parseLong(klineData.get(0).get(0)) / 1000, 0, ZoneOffset.UTC);
-                    LocalDateTime lastCandleTime = LocalDateTime.ofEpochSecond(Long.parseLong(klineData.get(klineData.size() - 1).get(0)) / 1000, 0, ZoneOffset.UTC);
-                    System.out.println("Первая свеча: " + firstCandleTime.format(formatter));
-                    System.out.println("Последняя свеча: " + lastCandleTime.format(formatter));
-                } else {
-                    System.out.println("Получен пустой ответ от биржи для интервала: " + startTimePeriod + " - " + endTimePeriod);
-                }
-
+                // Запись данных в файл и в список свечей, избегая дублирования
                 for (List<String> kline : klineData) {
-                    writer.write(String.join(",", kline));
-                    writer.newLine();
+                    long timestamp = Long.parseLong(kline.get(0));
+                    if (!existingTimestamps.contains(timestamp)) {
+                        writer.write(String.join(",", kline)); // Запись строки в файл
+                        writer.newLine();
+                        existingTimestamps.add(timestamp); // Добавляем временную метку в множество
+                        allCandles.add(new Candle(
+                                timestamp,
+                                Double.parseDouble(kline.get(1)),
+                                Double.parseDouble(kline.get(2)),
+                                Double.parseDouble(kline.get(3)),
+                                Double.parseDouble(kline.get(4)),
+                                Double.parseDouble(kline.get(5)),
+                                Double.parseDouble(kline.get(6))
+                        )); // Добавляем свечу в список
+                    }
                 }
 
-                startTimePeriod = endTimePeriod;
+                startTimePeriod = endTimePeriod; // Обновляем стартовое время для следующего запроса
             }
 
             System.out.println("Данные успешно записаны в файл: " + filename);
@@ -102,7 +113,8 @@ public class HistoricalDataService {
             System.err.println("Ошибка при записи в файл: " + e.getMessage());
         }
 
-        System.out.println("ПРОВЕРКА - " + checkDataFile(symbol, interval));
+        checkDataFile(symbol, interval); // Проверка целостности данных в файле
+        return allCandles; // Возвращаем список всех свечей
     }
 
     /**
@@ -149,7 +161,7 @@ public class HistoricalDataService {
      * @param interval таймфрейм
      * @return результат проверки
      */
-    public Object checkDataFile(String symbol, String interval) {
+    public boolean checkDataFile(String symbol, String interval) {
         String filename = String.format("%s/%s_%s_history.csv", HISTORICAL_DATA_FOLDER, symbol, interval);
         File file = new File(filename);
 
@@ -172,37 +184,34 @@ public class HistoricalDataService {
         int minutes = getMinutesPerCandle(interval) / MAX_CANDLES;
         long timeFrameMillis = minutes * 60 * 1000;
 
-        long startTimeInFile;
+        long startTimeInFile = 0;
         long endTimeInFile = 0;
+
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
-            br.readLine();
-            line = br.readLine();
-            String[] split = line.split(",");
-            long previousTimestamp = Long.parseLong(split[0]);
-            startTimeInFile = previousTimestamp;
+            br.readLine(); // Пропускаем заголовок
+            String[] split;
+            long previousTimestamp = -1;
 
             while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
+                split = line.split(",");
+                long timestamp = Long.parseLong(split[0]);
 
-                try {
-                    long timestamp = Long.parseLong(data[0]);
+                if (!timestamps.add(timestamp)) {
+                    System.out.println("Дублирующая запись найдена и удалена: " + line);
+                    continue;
+                }
 
-                    if (!timestamps.add(timestamp)) {
-                        System.out.println("Дублирующая запись найдена и удалена: " + line);
-                        continue;
-                    }
+                if (previousTimestamp != -1 && (timestamp - previousTimestamp != timeFrameMillis)) {
+                    System.out.println("Неправильный временной интервал между записями: "
+                            + previousTimestamp + " и " + timestamp + ". Строка: " + line);
+                    return false;
+                }
 
-                    if (previousTimestamp != -1 && (timestamp - previousTimestamp != timeFrameMillis)) {
-                        System.out.println("Неправильный временной интервал между записями: "
-                                + previousTimestamp + " и " + timestamp + ". Строка: " + line);
-                        return false;
-                    }
-
-                    previousTimestamp = timestamp;
-                    endTimeInFile = timestamp;
-                } catch (NumberFormatException e) {
-                    System.out.println("Ошибка формата временной метки в строке: " + line);
+                previousTimestamp = timestamp;
+                endTimeInFile = timestamp;
+                if (startTimeInFile == 0) {
+                    startTimeInFile = timestamp;
                 }
             }
 

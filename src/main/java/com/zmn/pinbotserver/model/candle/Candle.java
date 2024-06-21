@@ -18,48 +18,58 @@ public class Candle {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Getter
+    @Setter
     private long time;
+
     @Getter
     @Setter
     private double open;
+
     @Getter
     @Setter
     private double high;
+
     @Getter
     @Setter
     private double low;
+
     @Getter
     @Setter
     private double close;
+
     @Getter
     @Setter
     private double volume;
 
-    public Candle(long time, double open, double high, double low, double close, double volume) {
+    @Getter
+    @Setter
+    private double quoteVolume;
+
+    public Candle(long time, double open, double high, double low, double close, double volume, double quoteVolume) {
         this.time = time;
         this.open = open;
         this.high = high;
         this.low = low;
         this.close = close;
         this.volume = volume;
+        this.quoteVolume = quoteVolume;
     }
 
     public Candle() {
-
     }
 
-    public LocalDateTime getTime() {
+    public LocalDateTime getTimeAsLocalDateTime() {
         return LocalDateTime.ofEpochSecond(time / 1000, 0, ZoneOffset.UTC);
     }
 
-    public void setTime(LocalDateTime dateTime) {
+    public void setTimeFromLocalDateTime(LocalDateTime dateTime) {
         this.time = dateTime.toEpochSecond(ZoneOffset.UTC) * 1000;
     }
 
     public String toCsvString() {
-        return time + "," + open + "," + high + "," + low + "," + close + "," + volume;
+        return time + "," + open + "," + high + "," + low + "," + close + "," + volume + "," + quoteVolume;
     }
-
 
     public double getTypicalPrice() {
         return (high + low + close) / 3;
@@ -67,8 +77,8 @@ public class Candle {
 
     @Override
     public boolean equals(Object o) {
-        if(this == o) return true;
-        if(o == null || getClass() != o.getClass()) return false;
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         Candle candle = (Candle) o;
         return time == candle.time;
     }
@@ -80,7 +90,7 @@ public class Candle {
 
     @Override
     public String toString() {
-        return String.format(" Time: %s\n Open: %.4f\n High: %.4f\n Low: %.4f\n Close: %.4f\n Volume: %.4f",
-                getTime(), open, high, low, close, volume);
+        return String.format("Time: %s\nOpen: %.4f\nHigh: %.4f\nLow: %.4f\nClose: %.4f\nVolume: %.4f\nQuote Volume: %.4f",
+                getTimeAsLocalDateTime(), open, high, low, close, volume, quoteVolume);
     }
 }

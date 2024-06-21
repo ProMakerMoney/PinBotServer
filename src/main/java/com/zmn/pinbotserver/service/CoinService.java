@@ -34,8 +34,8 @@ public class CoinService {
         coin.setMinLeverage(bybitApiService.getMinLeverageFromAPI(coinName));
         coin.setMaxLeverage(bybitApiService.getMaxLeverageFromAPI(coinName));
         coin.setDataCheck(false);
-        coin.setIsCounted(false);
-        coin.setDateTimeCounted(0); // Используем 0 как эквивалент 1 января 1970
+        coin.setStartDateTimeCounted(0);
+        coin.setEndDateTimeCounted(0);
 
 
         return coinRepository.save(coin);

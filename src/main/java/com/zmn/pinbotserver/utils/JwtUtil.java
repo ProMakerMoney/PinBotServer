@@ -18,7 +18,7 @@ public class JwtUtil {
     private static final String SECRET_KEY = "0JbQsNC90YHQnNCw0YDQutGB0JHRg9C60YDRj9C60YE="; // Замените на ваш секретный ключ
 
     // Время жизни токена (15 минут в миллисекундах)
-    private static final long EXPIRATION_TIME = 1000 * 60 * 15; // 15 минут
+    private static final long EXPIRATION_TIME = 1000 * 60 * 6000; // 15 минут
 
     // Время жизни токена обновления (7 дней в миллисекундах)
     private static final long REFRESH_EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 7; // 7 дней

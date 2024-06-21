@@ -25,18 +25,20 @@ import java.util.Optional;
 public class CoinDBStorage implements CoinRepository {
 
     private final JdbcTemplate jdbcTemplate;
-
     private SimpleJdbcInsert insertCoin;
 
     /**
      * Конструктор, инициализирующий jdbcTemplate.
      *
      * @param jdbcTemplate JdbcTemplate для выполнения SQL-запросов.
+     * @param dataSource DataSource для инициализации SimpleJdbcInsert.
      */
     @Autowired
     public CoinDBStorage(JdbcTemplate jdbcTemplate, DataSource dataSource) {
         this.jdbcTemplate = jdbcTemplate;
-        this.insertCoin = new SimpleJdbcInsert(dataSource).withTableName("coins").usingGeneratedKeyColumns("id");
+        this.insertCoin = new SimpleJdbcInsert(dataSource)
+                .withTableName("coins")
+                .usingGeneratedKeyColumns("id");
     }
 
     /**
@@ -46,7 +48,7 @@ public class CoinDBStorage implements CoinRepository {
      */
     @Override
     public List<Coin> findAll() {
-        String sql = "SELECT * FROM COINS";
+        String sql = "SELECT * FROM coins";
         return jdbcTemplate.query(sql, new CoinRowMapper());
     }
 
@@ -58,7 +60,7 @@ public class CoinDBStorage implements CoinRepository {
      */
     @Override
     public Optional<Coin> findById(Long id) {
-        String sql = "SELECT * FROM COINS WHERE id = ?";
+        String sql = "SELECT * FROM coins WHERE id = ?";
         List<Coin> coins = jdbcTemplate.query(sql, new CoinRowMapper(), id);
         if (coins.isEmpty()) {
             return Optional.empty();
@@ -86,7 +88,8 @@ public class CoinDBStorage implements CoinRepository {
         parameters.put("max_leverage", coin.getMaxLeverage());
         parameters.put("data_check", coin.getDataCheck());
         parameters.put("is_counted", coin.getIsCounted());
-        parameters.put("date_time_counted", coin.getDateTimeCounted());
+        parameters.put("start_date_time_counted", coin.getStartDateTimeCounted());
+        parameters.put("end_date_time_counted", coin.getEndDateTimeCounted());
 
         Number newId = insertCoin.executeAndReturnKey(new MapSqlParameterSource(parameters));
         coin.setId(newId.longValue());
@@ -100,7 +103,7 @@ public class CoinDBStorage implements CoinRepository {
      */
     @Override
     public void deleteById(Long id) {
-        String sql = "DELETE FROM COINS WHERE COIN_ID = ?";
+        String sql = "DELETE FROM coins WHERE id = ?";
         jdbcTemplate.update(sql, id);
     }
 
@@ -112,7 +115,7 @@ public class CoinDBStorage implements CoinRepository {
      */
     @Override
     public boolean existsById(Long id) {
-        String sql = "SELECT COUNT(*) FROM COINS WHERE COIN_ID = ?";
+        String sql = "SELECT COUNT(*) FROM coins WHERE id = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id);
         return count != null && count > 0;
     }
@@ -132,7 +135,8 @@ public class CoinDBStorage implements CoinRepository {
             coin.setMaxLeverage(rs.getInt("max_leverage"));
             coin.setTimeframe(rs.getString("timeframe"));
             coin.setDateOfAddition(rs.getLong("date_of_addition"));
-            coin.setDateTimeCounted(rs.getLong("date_time_counted"));
+            coin.setStartDateTimeCounted(rs.getLong("start_date_time_counted"));
+            coin.setEndDateTimeCounted(rs.getLong("end_date_time_counted"));
             coin.setIsCounted(rs.getBoolean("is_counted"));
             coin.setDataCheck(rs.getBoolean("data_check"));
             return coin;

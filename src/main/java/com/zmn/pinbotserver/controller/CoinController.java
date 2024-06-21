@@ -28,9 +28,16 @@ public class CoinController {
      */
     @PostMapping("/add") // Обрабатывает HTTP POST запросы по URL /api/coins/add
     public ResponseEntity<Coin> addCoin(@RequestParam String coinName, @RequestParam String timeframe) {
+        if (coinName == null || coinName.isEmpty()) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        if (timeframe == null || timeframe.isEmpty()) {
+            return ResponseEntity.badRequest().body(null);
+        }
         Coin coin = coinService.addCoin(coinName, timeframe);
         return ResponseEntity.ok(coin);
     }
+
 
     /**
      * Метод для удаления монеты по ID

@@ -7,6 +7,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +30,11 @@ public class CsvService {
         File file = new File(filePath);
         if (!file.exists()) {
             file.createNewFile(); // Создаем новый файл, если он не существует
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, true))) {
+                // Записываем заголовок CSV файла
+                writer.write("timestamp,open,high,low,close,volume,quote_volume");
+                writer.newLine();
+            }
         } else {
             System.out.println("File for " + tradingPair + " with timeframe " + timeframe + " already exists."); // Сообщение, если файл уже существует
         }
@@ -45,13 +51,14 @@ public class CsvService {
         String filePath = getFilePath(tradingPair, timeframe); // Получаем путь к файлу
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, true))) { // Открываем файл для записи
             for (Candle candle : candles) {
-                writer.write(String.format("%s,%f,%f,%f,%f,%f\n",
+                writer.write(String.format("%d,%f,%f,%f,%f,%f,%f\n",
                         candle.getTime(),
                         candle.getOpen(),
                         candle.getHigh(),
                         candle.getLow(),
                         candle.getClose(),
-                        candle.getVolume())); // Записываем данные свечи в файл
+                        candle.getVolume(),
+                        candle.getQuoteVolume())); // Записываем данные свечи в файл
             }
         }
     }
@@ -68,15 +75,17 @@ public class CsvService {
         List<Candle> candles = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) { // Открываем файл для чтения
             String line;
+            reader.readLine(); // Пропускаем заголовок
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(",");
                 Candle candle = new Candle();
-                candle.setTime(LocalDateTime.parse(parts[0])); // Парсим время из строки
+                candle.setTimeFromLocalDateTime(LocalDateTime.ofEpochSecond(Long.parseLong(parts[0]) / 1000, 0, ZoneOffset.UTC)); // Парсим время из строки
                 candle.setOpen(Double.parseDouble(parts[1])); // Парсим цену открытия
                 candle.setHigh(Double.parseDouble(parts[2])); // Парсим максимальную цену
                 candle.setLow(Double.parseDouble(parts[3])); // Парсим минимальную цену
                 candle.setClose(Double.parseDouble(parts[4])); // Парсим цену закрытия
                 candle.setVolume(Double.parseDouble(parts[5])); // Парсим объем
+                candle.setQuoteVolume(Double.parseDouble(parts[6])); // Парсим квотируемый объем
                 candles.add(candle); // Добавляем свечу в список
             }
         }

@@ -4,16 +4,13 @@ package com.zmn.pinbotserver.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zmn.pinbotserver.BybitResponse;
 import com.zmn.pinbotserver.model.candle.Candle;
-import com.zmn.pinbotserver.strategy.ScalpingStrategyPro;
+import com.zmn.pinbotserver.strategy.Strategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service // Аннотация, обозначающая, что данный класс является сервисом в Spring
 public class PriceService {
@@ -24,7 +21,7 @@ public class PriceService {
     @Autowired // Автоматическая инъекция зависимости от ObjectMapper
     private ObjectMapper objectMapper;
 
-    private Map<ScalpingStrategyPro, TradingPairInfo> strategyMap = new HashMap<>(); // Карта для хранения стратегий и информации о торговых парах
+    private Map<Strategy, TradingPairInfo> strategyMap = new HashMap<>(); // Карта для хранения стратегий и информации о торговых парах
 
     /**
      * Метод для получения исторических свечей
@@ -41,8 +38,10 @@ public class PriceService {
         try {
             String response = restTemplate.getForObject(url, String.class); // Выполняем запрос и получаем ответ в виде строки
             List<Candle> candles = parseCandles(response); // Парсим ответ и получаем список свечей
-            candles = candles.reversed(); // Переворачиваем список свечей
-            candles.remove(candles.size() - 1); // Удаляем последнюю свечу
+            Collections.reverse(candles); // Переворачиваем список свечей
+            if (!candles.isEmpty()) {
+                candles.remove(candles.size() - 1); // Удаляем последнюю свечу
+            }
             return candles;
         } catch (Exception e) {
             e.printStackTrace();
@@ -56,14 +55,14 @@ public class PriceService {
      * @param tradingPair торговая пара
      * @param timeframe таймфрейм
      */
-    public void startFetchingData(ScalpingStrategyPro strategy, String tradingPair, String timeframe) {
+    public void startFetchingData(Strategy strategy, String tradingPair, String timeframe) {
         strategyMap.put(strategy, new TradingPairInfo(tradingPair, timeframe)); // Добавляем стратегию и информацию о торговой паре в карту
     }
 
     @Scheduled(cron = "0 * * * * *", zone = "UTC") // Запускать каждую минуту по UTC
     public void fetchCurrentPrice() {
-        for (Map.Entry<ScalpingStrategyPro, TradingPairInfo> entry : strategyMap.entrySet()) {
-            ScalpingStrategyPro strategy = entry.getKey();
+        for (Map.Entry<Strategy, TradingPairInfo> entry : strategyMap.entrySet()) {
+            Strategy strategy = entry.getKey();
             TradingPairInfo info = entry.getValue();
             fetchAndUpdateStrategy(strategy, info.getTradingPair(), info.getTimeframe());
         }
@@ -75,7 +74,7 @@ public class PriceService {
      * @param tradingPair торговая пара
      * @param timeframe таймфрейм
      */
-    private void fetchAndUpdateStrategy(ScalpingStrategyPro strategy, String tradingPair, String timeframe) {
+    private void fetchAndUpdateStrategy(Strategy strategy, String tradingPair, String timeframe) {
         try {
             Thread.sleep(1000); // Задержка на 1000 миллисекунд (1 секунд)
         } catch (InterruptedException e) {
@@ -90,12 +89,14 @@ public class PriceService {
         try {
             String response = restTemplate.getForObject(url, String.class); // Выполняем запрос и получаем ответ в виде строки
             List<Candle> candles = parseCandles(response); // Парсим ответ и получаем список свечей
-            candles = candles.reversed(); // Переворачиваем список свечей
-            candles.remove(candles.size() - 1); // Удаляем последнюю свечу
+            Collections.reverse(candles); // Переворачиваем список свечей
+            if (!candles.isEmpty()) {
+                candles.remove(candles.size() - 1); // Удаляем последнюю свечу
+            }
 
             if (!candles.isEmpty()) {
                 Candle latestCandle = candles.get(candles.size() - 1); // Получаем последнюю свечу
-                System.out.println("Новая свеча - " + latestCandle.getTime() + " | Цена закрытия: " + latestCandle.getClose());
+                System.out.println("Новая свеча - " + latestCandle.getTimeAsLocalDateTime() + " | Цена закрытия: " + latestCandle.getClose());
                 strategy.onPriceUpdate(latestCandle); // Обновляем стратегию новой свечой
             }
         } catch (Exception e) {
@@ -120,8 +121,9 @@ public class PriceService {
                 double low = Double.parseDouble(candleData.get(3));
                 double close = Double.parseDouble(candleData.get(4));
                 double volume = Double.parseDouble(candleData.get(5));
+                double quoteVolume = Double.parseDouble(candleData.get(6));
 
-                Candle candle = new Candle(openTime, open, high, low, close, volume); // Создаем объект свечи
+                Candle candle = new Candle(openTime, open, high, low, close, volume, quoteVolume); // Создаем объект свечи
                 candleList.add(candle); // Добавляем свечу в список
             }
         }

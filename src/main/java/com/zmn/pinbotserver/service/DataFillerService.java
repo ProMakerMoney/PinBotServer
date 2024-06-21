@@ -15,7 +15,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -45,6 +44,7 @@ public class DataFillerService {
         List<Candle> candles = new ArrayList<>();
         try (BufferedReader reader = Files.newBufferedReader(filePath)) {
             String line;
+            reader.readLine(); // Пропускаем заголовок
             while ((line = reader.readLine()) != null) {
                 String[] fields = line.split(",");
                 Candle candle = new Candle(
@@ -53,7 +53,8 @@ public class DataFillerService {
                         Double.parseDouble(fields[2]),
                         Double.parseDouble(fields[3]),
                         Double.parseDouble(fields[4]),
-                        Double.parseDouble(fields[5])
+                        Double.parseDouble(fields[5]),
+                        Double.parseDouble(fields[6])
                 );
                 candles.add(candle);
             }
@@ -76,7 +77,7 @@ public class DataFillerService {
 
         // Проходим по списку свечей, проверяя на дубли и "дырки"
         for (int i = 0; i < candles.size(); i++) {
-            LocalDateTime time = candles.get(i).getTime();
+            LocalDateTime time = candles.get(i).getTimeAsLocalDateTime();
 
             // Проверка на дублирование
             if (!uniqueTimes.add(time)) {
@@ -85,7 +86,7 @@ public class DataFillerService {
 
             // Проверка на "дырки"
             if (i > 0) {
-                LocalDateTime previousTime = candles.get(i - 1).getTime();
+                LocalDateTime previousTime = candles.get(i - 1).getTimeAsLocalDateTime();
                 long minutesBetween = ChronoUnit.MINUTES.between(previousTime, time);
                 if (minutesBetween != intervalMinutes) {
                     for (long j = intervalMinutes; j < minutesBetween; j += intervalMinutes) {
@@ -98,7 +99,7 @@ public class DataFillerService {
         // Выводим результаты проверки
         if (!duplicateTimes.isEmpty()) {
             System.out.println("Найдены дублирующиеся времена: " + duplicateTimes);
-            candles.removeIf(candle -> duplicateTimes.contains(candle.getTime())); // Удаляем дубли
+            candles.removeIf(candle -> duplicateTimes.contains(candle.getTimeAsLocalDateTime())); // Удаляем дубли
         }
 
         if (!missingTimes.isEmpty()) {
@@ -144,14 +145,15 @@ public class DataFillerService {
      */
     public List<Candle> fetchAndWriteCandles(String tradingPair, String timeframe, LocalDateTime startDate, Path filePath) throws IOException {
         List<Candle> newCandles = fetchCandles(tradingPair, timeframe, startDate);
-        Set<LocalDateTime> existingTimes = new HashSet<>();
+        Set<Long> existingTimes = new HashSet<>();
 
         // Читаем существующие свечи из файла, чтобы избежать дублирования
         try (BufferedReader reader = Files.newBufferedReader(filePath)) {
             String line;
+            reader.readLine(); // Пропускаем заголовок
             while ((line = reader.readLine()) != null) {
                 String[] fields = line.split(",");
-                LocalDateTime time = LocalDateTime.ofEpochSecond(Long.parseLong(fields[0]) / 1000, 0, ZoneOffset.UTC);
+                long time = Long.parseLong(fields[0]);
                 existingTimes.add(time);
             }
         }
@@ -250,7 +252,7 @@ public class DataFillerService {
                     double volume = node.get(5).asDouble();
                     double quoteVolume = node.get(6).asDouble();
 
-                    Candle candle = new Candle(time, open, high, low, close, volume);
+                    Candle candle = new Candle(time, open, high, low, close, volume, quoteVolume);
                     candles.add(candle);
                 }
             }

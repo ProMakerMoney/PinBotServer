@@ -12,7 +12,7 @@ import java.util.Map;
 
 @Service // Аннотация, обозначающая, что данный класс является сервисом в Spring
 public class BybitApiService {
-    private static final String BASE_URL = "https://api-testnet.bybit.com/v5/market/instruments-info"; // Базовый URL для API Bybit
+    private static final String BASE_URL = "https://api.bybit.com/v5/market/instruments-info"; // Базовый URL для API Bybit
 
     private final RestTemplate restTemplate; // Экземпляр RestTemplate для выполнения HTTP-запросов
 
@@ -29,7 +29,9 @@ public class BybitApiService {
      */
     public Map<String, Object> getInstrumentInfo(String category, String symbol) {
         String url = String.format("%s?category=%s&symbol=%s", BASE_URL, category, symbol); // Формирование URL с параметрами
+        System.out.println("Запрос URL: " + url);
         Map<String, Object> response = restTemplate.getForObject(url, Map.class); // Выполнение GET-запроса и получение ответа в виде карты
+        System.out.println("Ответ API: " + response);
         return response; // Возврат ответа
     }
 
@@ -40,10 +42,27 @@ public class BybitApiService {
      */
     public double getMinTradingQtyFromAPI(String symbol) {
         Map<String, Object> response = getInstrumentInfo("linear", symbol); // Получение информации о инструменте
+        if (response == null || !response.containsKey("result")) {
+            throw new RuntimeException("Invalid response from API");
+        }
+
         Map<String, Object> result = (Map<String, Object>) response.get("result"); // Извлечение результата из ответа
-        Map<String, Object> instrument = ((List<Map<String, Object>>) result.get("list")).get(0); // Получение первого элемента списка инструментов
+        if (result == null || !result.containsKey("list")) {
+            throw new RuntimeException("Invalid result data");
+        }
+
+        List<Map<String, Object>> instruments = (List<Map<String, Object>>) result.get("list"); // Получение списка инструментов
+        if (instruments.isEmpty()) {
+            throw new RuntimeException("No instruments found in API response");
+        }
+
+        Map<String, Object> instrument = instruments.get(0); // Получение первого элемента списка инструментов
+        if (instrument == null || !instrument.containsKey("lotSizeFilter")) {
+            throw new RuntimeException("Invalid instrument data");
+        }
+
         Map<String, Object> lotSizeFilter = (Map<String, Object>) instrument.get("lotSizeFilter"); // Получение фильтра размера лота
-        return Double.parseDouble((String) lotSizeFilter.get("minOrderQty")); // Преобразование и возврат минимального торгового количества
+        return Double.parseDouble(lotSizeFilter.get("minOrderQty").toString()); // Преобразование и возврат минимального торгового количества
     }
 
     /**
@@ -53,10 +72,27 @@ public class BybitApiService {
      */
     public double getMaxTradingQtyFromAPI(String symbol) {
         Map<String, Object> response = getInstrumentInfo("linear", symbol); // Получение информации о инструменте
+        if (response == null || !response.containsKey("result")) {
+            throw new RuntimeException("Invalid response from API");
+        }
+
         Map<String, Object> result = (Map<String, Object>) response.get("result"); // Извлечение результата из ответа
-        Map<String, Object> instrument = ((List<Map<String, Object>>) result.get("list")).get(0); // Получение первого элемента списка инструментов
+        if (result == null || !result.containsKey("list")) {
+            throw new RuntimeException("Invalid result data");
+        }
+
+        List<Map<String, Object>> instruments = (List<Map<String, Object>>) result.get("list"); // Получение списка инструментов
+        if (instruments.isEmpty()) {
+            throw new RuntimeException("No instruments found in API response");
+        }
+
+        Map<String, Object> instrument = instruments.get(0); // Получение первого элемента списка инструментов
+        if (instrument == null || !instrument.containsKey("lotSizeFilter")) {
+            throw new RuntimeException("Invalid instrument data");
+        }
+
         Map<String, Object> lotSizeFilter = (Map<String, Object>) instrument.get("lotSizeFilter"); // Получение фильтра размера лота
-        return Double.parseDouble((String) lotSizeFilter.get("maxOrderQty")); // Преобразование и возврат максимального торгового количества
+        return Double.parseDouble(lotSizeFilter.get("maxOrderQty").toString()); // Преобразование и возврат максимального торгового количества
     }
 
     /**
@@ -66,10 +102,27 @@ public class BybitApiService {
      */
     public int getMinLeverageFromAPI(String symbol) {
         Map<String, Object> response = getInstrumentInfo("linear", symbol); // Получение информации о инструменте
+        if (response == null || !response.containsKey("result")) {
+            throw new RuntimeException("Invalid response from API");
+        }
+
         Map<String, Object> result = (Map<String, Object>) response.get("result"); // Извлечение результата из ответа
-        Map<String, Object> instrument = ((List<Map<String, Object>>) result.get("list")).get(0); // Получение первого элемента списка инструментов
+        if (result == null || !result.containsKey("list")) {
+            throw new RuntimeException("Invalid result data");
+        }
+
+        List<Map<String, Object>> instruments = (List<Map<String, Object>>) result.get("list"); // Получение списка инструментов
+        if (instruments.isEmpty()) {
+            throw new RuntimeException("No instruments found in API response");
+        }
+
+        Map<String, Object> instrument = instruments.get(0); // Получение первого элемента списка инструментов
+        if (instrument == null || !instrument.containsKey("leverageFilter")) {
+            throw new RuntimeException("Invalid instrument data");
+        }
+
         Map<String, Object> leverageFilter = (Map<String, Object>) instrument.get("leverageFilter"); // Получение фильтра плеча
-        return (int) Double.parseDouble((String) leverageFilter.get("minLeverage")); // Преобразование и возврат минимального плеча
+        return (int) Double.parseDouble(leverageFilter.get("minLeverage").toString()); // Преобразование и возврат минимального плеча
     }
 
     /**
@@ -79,10 +132,27 @@ public class BybitApiService {
      */
     public int getMaxLeverageFromAPI(String symbol) {
         Map<String, Object> response = getInstrumentInfo("linear", symbol); // Получение информации о инструменте
+        if (response == null || !response.containsKey("result")) {
+            throw new RuntimeException("Invalid response from API");
+        }
+
         Map<String, Object> result = (Map<String, Object>) response.get("result"); // Извлечение результата из ответа
-        Map<String, Object> instrument = ((List<Map<String, Object>>) result.get("list")).get(0); // Получение первого элемента списка инструментов
+        if (result == null || !result.containsKey("list")) {
+            throw new RuntimeException("Invalid result data");
+        }
+
+        List<Map<String, Object>> instruments = (List<Map<String, Object>>) result.get("list"); // Получение списка инструментов
+        if (instruments.isEmpty()) {
+            throw new RuntimeException("No instruments found in API response");
+        }
+
+        Map<String, Object> instrument = instruments.get(0); // Получение первого элемента списка инструментов
+        if (instrument == null || !instrument.containsKey("leverageFilter")) {
+            throw new RuntimeException("Invalid instrument data");
+        }
+
         Map<String, Object> leverageFilter = (Map<String, Object>) instrument.get("leverageFilter"); // Получение фильтра плеча
-        return (int) Double.parseDouble((String) leverageFilter.get("maxLeverage")); // Преобразование и возврат максимального плеча
+        return (int) Double.parseDouble(leverageFilter.get("maxLeverage").toString()); // Преобразование и возврат максимального плеча
     }
 
     /**

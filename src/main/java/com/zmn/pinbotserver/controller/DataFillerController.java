@@ -59,7 +59,7 @@ public class DataFillerController {
             return dataFillerService.fetchAndWriteCandles(tradingPair, timeframe, startDate, filePath);
         } else {
             // Получаем время последней свечи из существующих данных
-            LocalDateTime lastCandleTime = existingCandles.get(existingCandles.size() - 1).getTime();
+            LocalDateTime lastCandleTime = existingCandles.get(existingCandles.size() - 1).getTimeAsLocalDateTime();
             // Загружаем и записываем новые свечи начиная с времени последней свечи
             return dataFillerService.fetchAndWriteCandles(tradingPair, timeframe, lastCandleTime, filePath);
         }

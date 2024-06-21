@@ -91,7 +91,8 @@ public class StartupCheckService {
                     "max_leverage INT, " +
                     "data_check BOOLEAN DEFAULT false NOT NULL, " +
                     "is_counted BOOLEAN DEFAULT false NOT NULL, " +
-                    "date_time_counted BIGINT DEFAULT 0 NOT NULL" +
+                    "start_date_time_counted BIGINT DEFAULT 0 NOT NULL," +
+                    "end_date_time_counted BIGINT DEFAULT 0 NOT NULL"+
                     ")";
             jdbcTemplate.execute(createTableQuery);
             System.out.println("Таблица COINS: создана!");
