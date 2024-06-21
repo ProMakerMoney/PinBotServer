@@ -116,22 +116,15 @@ public class DataFillerService {
      * @return интервал в минутах
      */
     private long getIntervalMinutes(String timeframe) {
-        switch (timeframe) {
-            case "1":
-                return 1;
-            case "5":
-                return 5;
-            case "15":
-                return 15;
-            case "60":
-                return 60;
-            case "4h":
-                return 240;
-            case "1d":
-                return 1440;
-            default:
-                throw new IllegalArgumentException("Unsupported timeframe: " + timeframe);
-        }
+        return switch (timeframe) {
+            case "1" -> 1;
+            case "5" -> 5;
+            case "15" -> 15;
+            case "60" -> 60;
+            case "4h" -> 240;
+            case "1d" -> 1440;
+            default -> throw new IllegalArgumentException("Unsupported timeframe: " + timeframe);
+        };
     }
 
     /**
@@ -268,21 +261,14 @@ public class DataFillerService {
      * @return максимальный интервал в минутах
      */
     private long getMaxInterval(String timeframe) {
-        switch (timeframe) {
-            case "1":
-                return 1000; // 1 минутный интервал, 1000 минут
-            case "5":
-                return 5 * 1000; // 5 минутный интервал, 5000 минут
-            case "15":
-                return 15 * 1000; // 15 минутный интервал, 15 000 минут
-            case "60":
-                return 60 * 1000; // 1 часовой интервал, 60 000 минут
-            case "4h":
-                return 60 * 4 * 1000; // 4 часовой интервал, 240 000 минут
-            case "1d":
-                return 60 * 24 * 1000; // 1 дневной интервал, 1 440 000 минут
-            default:
-                throw new IllegalArgumentException("Unsupported timeframe: " + timeframe);
-        }
+        return switch (timeframe) {
+            case "1" -> 1000; // 1 минутный интервал, 1000 минут
+            case "5" -> 5 * 1000; // 5 минутный интервал, 5000 минут
+            case "15" -> 15 * 1000; // 15 минутный интервал, 15 000 минут
+            case "60" -> 60 * 1000; // 1 часовой интервал, 60 000 минут
+            case "4h" -> 60 * 4 * 1000; // 4 часовой интервал, 240 000 минут
+            case "1d" -> 60 * 24 * 1000; // 1 дневной интервал, 1 440 000 минут
+            default -> throw new IllegalArgumentException("Unsupported timeframe: " + timeframe);
+        };
     }
 }
