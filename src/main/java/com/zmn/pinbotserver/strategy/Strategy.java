@@ -5,6 +5,7 @@ import com.zmn.pinbotserver.model.order.Order;
 import com.zmn.pinbotserver.model.order.Position;
 import com.zmn.pinbotserver.model.order.STATUS;
 import com.zmn.pinbotserver.model.order.TYPE;
+import com.zmn.pinbotserver.model.strategy.StrategyParams;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -39,14 +40,14 @@ public class Strategy {
     List<Position> positionHistory = new ArrayList<>();
 
     // Конструктор стратегии
-    public Strategy(String tradingPair, int leverage, int cciPeriod, int emaPeriod, double ratio, int maxOrders) {
-        this.tradingPair = tradingPair;
-        this.LEVERAGE = leverage;
-        this.CCI_PERIOD = cciPeriod;
-        this.EMA_PERIOD = emaPeriod;
-        this.upperBound = 100 * ratio;
-        this.lowerBound = -100 * ratio;
-        this.MAXOrders = maxOrders;
+    public Strategy(StrategyParams strategyParams) {
+        this.tradingPair = strategyParams.getCoinName();
+        this.LEVERAGE = strategyParams.getLEVERAGE();
+        this.CCI_PERIOD = strategyParams.getCCI();
+        this.EMA_PERIOD = strategyParams.getEMA();
+        this.upperBound = 100 * strategyParams.getRATIO();
+        this.lowerBound = -100 * strategyParams.getRATIO();
+        this.MAXOrders = strategyParams.getMaxOpenOrder();
     }
 
     /**

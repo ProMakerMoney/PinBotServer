@@ -9,6 +9,7 @@ import java.util.List;
 public class Position {
     private static int idCounter = 1; // Счетчик для генерации уникальных ID
     int id; // Уникальный идентификатор позиции
+    @Getter
     String tradingPair; // Торговая пара
     long startPosition; // Время открытия позиции
     long endPosition; // Время закрытия позиции
@@ -28,7 +29,7 @@ public class Position {
         this.tradingPair = tradingPair;
         this.side = side;
         this.leverage = leverage;
-        this.orders = new ArrayList<Order>();
+        this.orders = new ArrayList<>();
         this.commission = 0.0;
     }
 

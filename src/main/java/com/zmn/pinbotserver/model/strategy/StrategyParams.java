@@ -1,43 +1,30 @@
 package com.zmn.pinbotserver.model.strategy;
 
-import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
 
-import java.time.LocalDateTime;
-
-@Entity
-@Table(name = "strategy_params")
-@Data
 public class StrategyParams {
+    @Getter
+    private final String coinName;
+    @Getter
+    private final String timeframe;
+    @Getter
+    private final int LEVERAGE;
+    @Getter
+    private final int MaxOpenOrder;
+    @Getter
+    private final int CCI;
+    @Getter
+    private final int EMA;
+    @Getter
+    private final double RATIO;
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "coin", nullable = false)
-    private String coin;
-
-    @Column(name = "timeframe", nullable = false)
-    private String timeframe;
-
-    @Column(name = "cci")
-    private int cci;
-
-    @Column(name = "ema")
-    private int ema;
-
-    @Column(name = "lev")
-    private int lev;
-
-    @Column(name = "ratio")
-    private double ratio;
-
-    @Column(name = "lot")
-    private int lot;
-
-    @Column(name = "date_time")
-    private LocalDateTime dateTime;
-
-    @Column(name = "is_work", nullable = false)
-    private boolean isWork;
+    public StrategyParams(String coinName, String timeframe, int LEVERAGE, int maxOpenOrder, int CCI, int EMA, double RATIO) {
+        this.coinName = coinName;
+        this.timeframe = timeframe;
+        this.LEVERAGE = LEVERAGE;
+        MaxOpenOrder = maxOpenOrder;
+        this.CCI = CCI;
+        this.EMA = EMA;
+        this.RATIO = RATIO;
+    }
 }
