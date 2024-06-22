@@ -1,12 +1,20 @@
 package com.zmn.pinbotserver.model.order;
 
 
+import lombok.Getter;
+
 public class Order {
+    @Getter
     String tradingPair; // Торговая пара
+    @Getter
     String direction; // Направление (купить, продать)
+    @Getter
     long executionTime; // Время исполнения ордера
+    @Getter
     double volume; // Объем ордера (в монете)
+    @Getter
     double executionPrice; // Цена исполнения (в долларах)
+    @Getter
     STATUS status;
 
     public Order(String tradingPair, String direction, long executionTime, double volume, double executionPrice, STATUS status) {
