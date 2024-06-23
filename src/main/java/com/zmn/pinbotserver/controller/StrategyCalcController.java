@@ -44,7 +44,13 @@ public class StrategyCalcController {
             String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
             Path filePath = Paths.get("C:\\Users\\dev-n\\IdeaProjects\\PinBotServer\\historical_data", fileName);
             List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
-            GeneticAlgorithmStrategyTester tester = new GeneticAlgorithmStrategyTester(candles, strategyTestingService, coin);
+            // Определение количества свечек для обработки
+            int candleCount = 8640; // 3 (три) месяца
+            // Вычисление начального индекса для подсписка последних 8640 свечек
+            int startIndex = Math.max(candles.size() - candleCount, 0);
+            // Создание подсписка последних 8640 свечек
+            List<Candle> recentCandles = candles.subList(startIndex, candles.size());
+            GeneticAlgorithmStrategyTester tester = new GeneticAlgorithmStrategyTester(recentCandles, strategyTestingService, coin);
             StrategyParams bestParams = tester.run();
             StrategyStats stats = strategyTestingService.testStrategy(coin, bestParams);
 

@@ -64,7 +64,7 @@ public class PriceService {
         for (Map.Entry<Strategy, TradingPairInfo> entry : strategyMap.entrySet()) {
             Strategy strategy = entry.getKey();
             TradingPairInfo info = entry.getValue();
-            fetchAndUpdateStrategy(strategy, info.getTradingPair(), info.getTimeframe());
+            //fetchAndUpdateStrategy(strategy, info.getTradingPair(), info.getTimeframe());
         }
     }
 
@@ -74,35 +74,35 @@ public class PriceService {
      * @param tradingPair торговая пара
      * @param timeframe таймфрейм
      */
-    private void fetchAndUpdateStrategy(Strategy strategy, String tradingPair, String timeframe) {
-        try {
-            Thread.sleep(1000); // Задержка на 1000 миллисекунд (1 секунд)
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        long currentTime = System.currentTimeMillis();
-        long startTime = currentTime - 150 * 60000; // Начальное время на 15 минут назад от текущего времени
-        long endTime = currentTime; // Конечное время - текущее время
-        String url = "https://api.bybit.com/derivatives/v3/public/kline?category=linear&symbol=" + tradingPair + "&interval=" + timeframe + "&start=" + startTime + "&end=" + endTime + "&limit=1000";
-
-        try {
-            String response = restTemplate.getForObject(url, String.class); // Выполняем запрос и получаем ответ в виде строки
-            List<Candle> candles = parseCandles(response); // Парсим ответ и получаем список свечей
-            Collections.reverse(candles); // Переворачиваем список свечей
-            if (!candles.isEmpty()) {
-                candles.remove(candles.size() - 1); // Удаляем последнюю свечу
-            }
-
-            if (!candles.isEmpty()) {
-                Candle latestCandle = candles.get(candles.size() - 1); // Получаем последнюю свечу
-                System.out.println("Новая свеча - " + latestCandle.getTimeAsLocalDateTime() + " | Цена закрытия: " + latestCandle.getClose());
-                strategy.onPriceUpdate(latestCandle, 0.1); // Обновляем стратегию новой свечой
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+//    private void fetchAndUpdateStrategy(Strategy strategy, String tradingPair, String timeframe) {
+//        try {
+//            Thread.sleep(1000); // Задержка на 1000 миллисекунд (1 секунд)
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//
+//        long currentTime = System.currentTimeMillis();
+//        long startTime = currentTime - 150 * 60000; // Начальное время на 15 минут назад от текущего времени
+//        long endTime = currentTime; // Конечное время - текущее время
+//        String url = "https://api.bybit.com/derivatives/v3/public/kline?category=linear&symbol=" + tradingPair + "&interval=" + timeframe + "&start=" + startTime + "&end=" + endTime + "&limit=1000";
+//
+//        try {
+//            String response = restTemplate.getForObject(url, String.class); // Выполняем запрос и получаем ответ в виде строки
+//            List<Candle> candles = parseCandles(response); // Парсим ответ и получаем список свечей
+//            Collections.reverse(candles); // Переворачиваем список свечей
+//            if (!candles.isEmpty()) {
+//                candles.remove(candles.size() - 1); // Удаляем последнюю свечу
+//            }
+//
+//            if (!candles.isEmpty()) {
+//                Candle latestCandle = candles.get(candles.size() - 1); // Получаем последнюю свечу
+//                System.out.println("Новая свеча - " + latestCandle.getTimeAsLocalDateTime() + " | Цена закрытия: " + latestCandle.getClose());
+//                strategy.onPriceUpdate(latestCandle, 0.1); // Обновляем стратегию новой свечой
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     /**
      * Метод для парсинга свечей из JSON ответа

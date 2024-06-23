@@ -38,8 +38,8 @@ public class StrategyTestingService {
         // Чтение свечек из CSV файла с помощью сервиса
         List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
 
-        // Создание объекта стратегии с заданными параметрами
-        Strategy strategy = new Strategy(strategyParams);
+        // Создание объекта стратегии с заданными параметрами и начальным депозитом
+        Strategy strategy = new Strategy(strategyParams, 10.0, coin.getMinTradingQty());
 
         // Определение количества свечек для обработки
         int candleCount = 8640; // 3 (три) месяца
@@ -50,17 +50,14 @@ public class StrategyTestingService {
 
         // Обработка каждой свечки из подсписка с помощью стратегии
         for (Candle candle : recentCandles) {
-            strategy.onPriceUpdate(candle, coin.getMinTradingQty());
+            strategy.onPriceUpdate(candle);
         }
 
         // Получение истории позиций и ордеров из стратегии
         List<Position> positions = strategy.getPositionHistory();
         List<Order> orders = strategy.getOrderHistory();
 
-        // Создание объекта статистики стратегии
-        StrategyStats strategyStats = new StrategyStats(positions, orders, recentCandles);
-
-        // Возвращение объекта статистики
-        return strategyStats;
+        // Создание и возвращение объекта StrategyStats
+        return new StrategyStats(positions, orders, recentCandles);
     }
 }
