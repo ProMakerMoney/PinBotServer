@@ -97,7 +97,7 @@ public class PriceService {
             if (!candles.isEmpty()) {
                 Candle latestCandle = candles.get(candles.size() - 1); // Получаем последнюю свечу
                 System.out.println("Новая свеча - " + latestCandle.getTimeAsLocalDateTime() + " | Цена закрытия: " + latestCandle.getClose());
-                strategy.onPriceUpdate(latestCandle); // Обновляем стратегию новой свечой
+                strategy.onPriceUpdate(latestCandle, 0.1); // Обновляем стратегию новой свечой
             }
         } catch (Exception e) {
             e.printStackTrace();

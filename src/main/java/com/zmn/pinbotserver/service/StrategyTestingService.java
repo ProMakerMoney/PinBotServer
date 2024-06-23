@@ -30,7 +30,7 @@ public class StrategyTestingService {
         String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
 
         // Вывод в консоль сообщения о поиске файла
-        System.out.println("Буду искать файл - " + fileName);
+        //System.out.println("Буду искать файл - " + fileName);
 
         // Указание пути к файлу CSV
         Path filePath = Paths.get("C:\\Users\\dev-n\\IdeaProjects\\PinBotServer\\historical_data", fileName);
@@ -50,17 +50,17 @@ public class StrategyTestingService {
 
         // Обработка каждой свечки из подсписка с помощью стратегии
         for (Candle candle : recentCandles) {
-            strategy.onPriceUpdate(candle);
+            strategy.onPriceUpdate(candle, coin.getMinTradingQty());
         }
 
-        // Получение истории позиций из стратегии
+        // Получение истории позиций и ордеров из стратегии
         List<Position> positions = strategy.getPositionHistory();
-
-        // Получение истории ордеров из стратегии
         List<Order> orders = strategy.getOrderHistory();
 
-        StrategyStats strategyStats = new StrategyStats();
+        // Создание объекта статистики стратегии
+        StrategyStats strategyStats = new StrategyStats(positions, orders, recentCandles);
 
+        // Возвращение объекта статистики
         return strategyStats;
     }
 }

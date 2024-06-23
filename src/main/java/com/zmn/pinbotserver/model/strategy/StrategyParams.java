@@ -22,7 +22,7 @@ public class StrategyParams {
         this.coinName = coinName;
         this.timeframe = timeframe;
         this.LEVERAGE = LEVERAGE;
-        MaxOpenOrder = maxOpenOrder;
+        this.MaxOpenOrder = maxOpenOrder;
         this.CCI = CCI;
         this.EMA = EMA;
         this.RATIO = RATIO;

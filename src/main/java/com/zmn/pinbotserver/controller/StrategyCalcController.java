@@ -1,9 +1,13 @@
 package com.zmn.pinbotserver.controller;
 
+import com.zmn.pinbotserver.model.candle.Candle;
 import com.zmn.pinbotserver.model.coin.Coin;
 import com.zmn.pinbotserver.model.strategy.StrategyParams;
+import com.zmn.pinbotserver.model.strategy.StrategyStats;
 import com.zmn.pinbotserver.repository.CoinRepository;
+import com.zmn.pinbotserver.service.DataFillerService;
 import com.zmn.pinbotserver.service.StrategyTestingService;
+import com.zmn.pinbotserver.strategyTesting.GeneticAlgorithmStrategyTester;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,33 +16,44 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
 
-@RestController // Аннотация, обозначающая, что данный класс является контроллером Spring RESTful веб-сервиса
+@RestController
 public class StrategyCalcController {
 
-    // Объявление переменных для репозитория и сервиса
     private final CoinRepository coinRepository;
     private final StrategyTestingService strategyTestingService;
+    private final DataFillerService dataFillerService;
 
-    // Конструктор с аннотацией @Autowired для автоматической инъекции зависимостей
     @Autowired
-    public StrategyCalcController(CoinRepository coinRepository, StrategyTestingService strategyTestingService) {
+    public StrategyCalcController(CoinRepository coinRepository, StrategyTestingService strategyTestingService, DataFillerService dataFillerService) {
         this.coinRepository = coinRepository;
         this.strategyTestingService = strategyTestingService;
+        this.dataFillerService = dataFillerService;
     }
 
-    // Метод, обрабатывающий HTTP GET запросы по указанному URL
-    @GetMapping("/api/strategy/calc/{id}") // Аннотация, обозначающая, что данный метод обрабатывает HTTP GET запросы по указанному URL
-    public ResponseEntity<String> getServerStatus(@PathVariable Long id) throws IOException {
-        // Поиск монеты по ID с помощью репозитория
+    @GetMapping("/api/strategy/calc/{id}")
+    public ResponseEntity<String> calculateStrategy(@PathVariable Long id) throws IOException, InterruptedException {
         Optional<Coin> coinOptional = coinRepository.findById(id);
 
         if (coinOptional.isPresent()) {
             Coin coin = coinOptional.get();
-            StrategyParams strategyParams = new StrategyParams(coin.getCoinName(), coin.getTimeframe(), 10, 10, 93, 27, 0.9805865492105444);
-            strategyTestingService.testStrategy(coin, strategyParams);
-            return ResponseEntity.ok("Стратегия посчитана!");
+            String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
+            Path filePath = Paths.get("C:\\Users\\dev-n\\IdeaProjects\\PinBotServer\\historical_data", fileName);
+            List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
+            GeneticAlgorithmStrategyTester tester = new GeneticAlgorithmStrategyTester(candles, strategyTestingService, coin);
+            StrategyParams bestParams = tester.run();
+            StrategyStats stats = strategyTestingService.testStrategy(coin, bestParams);
+
+            String result = String.format("Лучшие параметры стратегии:\nCCI: %d\nEMA: %d\nLEVERAGE: %d\nRATIO: %.2f\nMAX_ORDERS: %d\n" +
+                            "Результаты стратегии:\nОбщая прибыль: %.2f\nКоличество сделок: %d\nПроцент прибыльных сделок: %.2f%%\nМаксимальная просадка: %.2f\nДата тестирования: %d",
+                    bestParams.getCCI(), bestParams.getEMA(), bestParams.getLEVERAGE(), bestParams.getRATIO(), bestParams.getMaxOpenOrder(),
+                    stats.getProfitInDollars(), stats.getTradeCount(), stats.getProfitableTradePercentage(), stats.getMaxDrawdown(), stats.getTestDate());
+
+            return ResponseEntity.ok(result);
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Монета с указанным ID не найдена.");
         }

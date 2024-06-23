@@ -79,7 +79,7 @@ public class Strategy {
         int period = CCI_PERIOD; // Период для CCI
         if (candleHistory.size() < period) {
             // Если недостаточно данных, возвращаем 0 и выводим сообщение
-            System.out.println("Not enough data to calculate CCI.");
+            //System.out.println("Not enough data to calculate CCI.");
             return 0;
         }
 
@@ -104,20 +104,21 @@ public class Strategy {
     /**
      * Метод, вызываемый при обновлении цены
      * @param candle новая свеча
+     * @param QTY количество
      */
-    public void onPriceUpdate(Candle candle) {
+    public void onPriceUpdate(Candle candle, double QTY) {
         // Если свеча уже существует в истории, возвращаемся
         if (!candleHistory.contains(candle)) {
             currentPrice = candle.getClose();
             candleHistory.add(candle);
         } else {
-            System.out.println("Свеча в списке уже есть!");
+            //System.out.println("Свеча в списке уже есть!");
             return;
         }
 
         // Если недостаточно данных, возвращаемся
         if (candleHistory.size() < MINIMUM_CANDLES) {
-            System.out.println("Недостаточно данных");
+            //System.out.println("Недостаточно данных");
             return;
         }
 
@@ -131,7 +132,7 @@ public class Strategy {
         double newEMA = calculateEMA(newCCI, EMA_PERIOD);
 
         // Обрабатываем ордера на основе новых значений
-        manageOrders(newCCI, newEMA, candle);
+        manageOrders(newCCI, newEMA, candle, QTY);
 
         // Вывод состояния стратегии
         // printStrategyState();
@@ -158,16 +159,21 @@ public class Strategy {
      * Метод для управления ордерами
      * @param cci текущее значение CCI
      * @param ema текущее значение EMA
+     * @param candle текущая свеча
+     * @param QTY количество
      */
-    private void manageOrders(double cci, double ema, Candle candle) {
+    private void manageOrders(double cci, double ema, Candle candle, double QTY) {
 
         double liquidationLevelPer = 100.0 / LEVERAGE; // Уровень ликвидации в процентах
 
         // Ликвидация LONG ордеров, если цена достигает уровня ликвидации
         if (longIsOpen && currentPrice <= last_long_price * (1 - liquidationLevelPer / 100)) {
-            System.out.println("Ликвидация LONG позиции");
-            System.out.printf("Пара: %s, Действие: Продажа, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), 0.1 * openOrders, currentPrice, STATUS.CLOSE);
+            //System.out.println("Ликвидация LONG позиции");
+            //System.out.printf("Пара: %s, Действие: Продажа, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), QTY * openOrders, currentPrice, STATUS.CLOSE);
             //orderHistory.add(new Order(tradingPair, "Sell", candle.getTime(), 0.1 * openOrders, currentPrice, STATUS.CLOSE));
+            Order order = new Order(tradingPair, "sell", candle.getTime(), 0.1 * openOrders, currentPrice, STATUS.CLOSE);
+            position.closePosition(order);
+            orderHistory.add(order);
             longIsOpen = false;
             longIsReady = false;
             longIsReadyAVG = false;
@@ -177,9 +183,13 @@ public class Strategy {
 
         // Ликвидация SHORT ордеров, если цена достигает уровня ликвидации
         if (shortIsOpen && currentPrice >= last_short_price * (1 + liquidationLevelPer / 100)) {
-            System.out.println("Ликвидация SHORT позиции");
-            System.out.printf("Пара: %s, Действие: Покупка, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), 0.1 * openOrders, currentPrice, STATUS.CLOSE);
+            //System.out.println("Ликвидация SHORT позиции");
+            //System.out.printf("Пара: %s, Действие: Покупка, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), QTY * openOrders, currentPrice, STATUS.CLOSE);
             //orderHistory.add(new Order(tradingPair, "Buy", candle.getTime(), 0.1 * openOrders, currentPrice, STATUS.CLOSE));
+            Order order = new Order(tradingPair, "buy", candle.getTime(), 0.1 * openOrders, currentPrice, STATUS.CLOSE);
+            position.closePosition(order);
+            orderHistory.add(order);
+
             shortIsOpen = false;
             shortIsReady = false;
             shortIsReadyAVG = false;
@@ -194,9 +204,9 @@ public class Strategy {
 
         // Открытие первого LONG ордера при выполнении условий
         if (longIsReady && cci > ema && !longIsReadyAVG && !longIsOpen && cci <= upperBound && !shortIsOpen && !shortIsReadyAVG) {
-            System.out.println("Открыть LONG");
+            //System.out.println("Открыть LONG");
             openOrders++;
-            System.out.printf("Пара: %s, Действие: Покупка, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), 0.1 * openOrders, currentPrice, STATUS.OPEN);
+            //System.out.printf("Пара: %s, Действие: Покупка, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), QTY, currentPrice, STATUS.OPEN);
             position = new Position(tradingPair, TYPE.LONG, LEVERAGE);
             Order order = new Order(tradingPair, "buy", candle.getTime(), 0.1, currentPrice, STATUS.OPEN);
             position.addOrder(order);
@@ -219,9 +229,9 @@ public class Strategy {
 
         // Открытие усредняющего LONG ордера при выполнении условий
         if (longIsReadyAVG && cci > ema && currentPrice < last_long_price && longIsOpen && !shortIsOpen && !shortIsReadyAVG) {
-            System.out.println("Усреднить LONG");
+            //System.out.println("Усреднить LONG");
             openOrders++;
-            System.out.printf("Пара: %s, Действие: Покупка, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), 0.1 * openOrders, currentPrice, STATUS.OPEN);
+            //System.out.printf("Пара: %s, Действие: Покупка, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), QTY, currentPrice, STATUS.OPEN);
             Order order = new Order(tradingPair, "buy", candle.getTime(), 0.1, currentPrice, STATUS.OPEN);
             position.addOrder(order);
             orderHistory.add(order);
@@ -233,8 +243,8 @@ public class Strategy {
 
         // Закрытие всех LONG ордеров при достижении верхней границы CCI
         if (longIsOpen && !shortIsOpen && openOrders > 0 && cci > upperBound) {
-            System.out.println("Закрыть все LONG позиции");
-            System.out.printf("Пара: %s, Действие: Продажа, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), 0.1 * openOrders, currentPrice, STATUS.CLOSE);
+            //System.out.println("Закрыть все LONG позиции");
+            //System.out.printf("Пара: %s, Действие: Продажа, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), QTY * openOrders, currentPrice, STATUS.CLOSE);
             Order order = new Order(tradingPair, "sell", candle.getTime(), 0.1 * openOrders, currentPrice, STATUS.CLOSE);
             position.closePosition(order);
             orderHistory.add(order);
@@ -254,9 +264,9 @@ public class Strategy {
 
         // Открытие первого SHORT ордера при выполнении условий
         if (shortIsReady && cci < ema && !shortIsReadyAVG && !shortIsOpen && cci >= lowerBound && !longIsOpen && !longIsReadyAVG) {
-            System.out.println("Открыть SHORT позицию");
+            //System.out.println("Открыть SHORT позицию");
             openOrders++;
-            System.out.printf("Пара: %s, Действие: Продажа, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), 0.1, currentPrice, STATUS.OPEN);
+            //System.out.printf("Пара: %s, Действие: Продажа, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), QTY, currentPrice, STATUS.OPEN);
             position = new Position(tradingPair, TYPE.SHORT, LEVERAGE);
             Order order = new Order(tradingPair, "sell", candle.getTime(), 0.1, currentPrice, STATUS.OPEN);
             position.addOrder(order);
@@ -278,9 +288,9 @@ public class Strategy {
 
         // Открытие усредняющего SHORT ордера при выполнении условий
         if (shortIsReadyAVG && cci < ema && currentPrice > last_short_price && !longIsOpen && shortIsOpen) {
-            System.out.println("Усреднить SHORT");
+            //System.out.println("Усреднить SHORT");
             openOrders++;
-            System.out.printf("Пара: %s, Действие: Продажа, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), 0.1, currentPrice, STATUS.OPEN);
+            //System.out.printf("Пара: %s, Действие: Продажа, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), QTY, currentPrice, STATUS.OPEN);
             Order order = new Order(tradingPair, "sell", candle.getTime(), 0.1, currentPrice, STATUS.OPEN);
             position.addOrder(order);
             orderHistory.add(order);
@@ -292,8 +302,8 @@ public class Strategy {
 
         // Закрытие всех SHORT ордеров при достижении нижней границы CCI
         if (!longIsOpen && shortIsOpen && openOrders > 0 && cci < lowerBound) {
-            System.out.println("Закрыть все SHORT позиции");
-            System.out.printf("Пара: %s, Действие: Покупка, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), 0.1 * openOrders, currentPrice, STATUS.CLOSE);
+            //System.out.println("Закрыть все SHORT позиции");
+            //System.out.printf("Пара: %s, Действие: Покупка, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n", tradingPair, candle.getTime(), QTY * openOrders, currentPrice, STATUS.CLOSE);
             Order order = new Order(tradingPair, "buy", candle.getTime(), 0.1 * openOrders, currentPrice, STATUS.CLOSE);
             position.closePosition(order);
             orderHistory.add(order);
@@ -313,9 +323,6 @@ public class Strategy {
      */
     private void printStrategyState() {
         StringBuilder state = new StringBuilder();
-
-
-
         if (longIsOpen) {
             state.append("Открыта позиция: LONG\n");
         } else if (shortIsOpen) {

@@ -12,114 +12,108 @@ import java.util.List;
 public class StrategyStats {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Автоматическая генерация ID
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Getter
     private Long id;
-
     @Getter
-    private String coinName; // Название монеты
-
+    private String coinName;
     @Getter
-    private String timeframe; // Таймфрейм
-
+    private String timeframe = "15";
     @Getter
-    private long testStartTime; // Время начала тестирования
-
+    private long testStartTime;
     @Getter
-    private long testEndTime; // Время окончания тестирования
-
+    private long testEndTime;
     @Getter
-    private int tradeCount; // Количество сделок
-
+    private int tradeCount;
     @Getter
-    private double profitableTradePercentage; // Процент прибыльных сделок
-
+    private double profitableTradePercentage;
     @Getter
-    private double profitInDollars; // Профит в долларах
-
+    private double profitInDollars;
     @Getter
-    private double profitPercentage; // Профит в процентах от начального депозита
-
+    private double profitPercentage;
     @Getter
-    private double maxDrawdown; // Максимальная просадка
-
+    private double maxDrawdown;
     @Getter
-    private long testDate; // Дата тестирования
-
+    private long testDate;
     @Getter
-    private List<Position> positions; // Список позиций
-
+    private List<Position> positions;
     @Getter
-    private List<Order> orders; // Список ордеров
+    private List<Order> orders;
 
     // Конструктор по умолчанию
     public StrategyStats() {
     }
 
-    // Конструктор с параметрами для инициализации всех полей
+    // Конструктор со всеми параметрами
     public StrategyStats(List<Position> positions, List<Order> orders, List<Candle> candles) {
         this.positions = positions;
         this.orders = orders;
-        this.coinName = positions.getFirst().getTradingPair(); // Получение названия монеты из первой позиции
-        this.testStartTime = candles.getFirst().getTime(); // Получение времени начала тестирования из первой свечи
-        this.testEndTime = candles.getLast().getTime(); // Получение времени окончания тестирования из последней свечи
-        this.tradeCount = positions.size(); // Установка количества сделок
-        this.profitableTradePercentage = calcProfitable(); // Вычисление процента прибыльных сделок
-        this.profitInDollars = calcProfitableInDollars(); // Вычисление профита в долларах
-        this.profitPercentage = calcProfitPercentage(); // Вычисление профита в процентах от начального депозита
-        this.maxDrawdown = calcMaxDrown(); // Вычисление максимальной просадки
-        this.testDate = System.currentTimeMillis(); // Установка текущего времени как даты тестирования
-    }
-
-    // Метод для расчета процента прибыльных сделок
-    private double calcProfitable() {
-        if (positions.isEmpty()) {
-            return 0.0; // Если нет позиций, возвращаем 0
+        if (!positions.isEmpty()) {
+            this.coinName = positions.get(0).getTradingPair();
         }
-        long profitableTrades = positions.stream()
-                .filter(position -> position.getProfit() > 0) // Фильтрация прибыльных позиций
-                .count(); // Подсчет количества прибыльных позиций
-        return ((double) profitableTrades / positions.size()) * 100; // Вычисление процента прибыльных сделок
-    }
-
-    // Метод для расчета прибыли в долларах
-    private double calcProfitableInDollars() {
-        return positions.stream()
-                .mapToDouble(Position::getProfit) // Получение прибыли каждой позиции
-                .sum(); // Суммирование всей прибыли
-    }
-
-    // Метод для расчета прибыли в процентах от начального депозита
-    private double calcProfitPercentage() {
-        double initialInvestment = orders.stream()
-                .filter(order -> order.getDirection().equals("buy")) // Фильтрация ордеров на покупку
-                .mapToDouble(order -> order.getExecutionPrice() * order.getVolume()) // Вычисление стоимости каждого ордера
-                .sum(); // Суммирование всех начальных инвестиций
-
-        if (initialInvestment == 0) {
-            return 0.0; // Если нет начальных инвестиций, возвращаем 0
+        if (!candles.isEmpty()) {
+            this.testStartTime = candles.get(0).getTime();
+            this.testEndTime = candles.get(candles.size() - 1).getTime();
         }
-
-        return (calcProfitableInDollars() / initialInvestment) * 100; // Вычисление процента прибыли
+        this.tradeCount = positions.size();
+        this.profitableTradePercentage = calcProfitable();
+        this.profitInDollars = calcProfitableInDollars();
+        this.profitPercentage = calcProfitPercentage();
+        this.maxDrawdown = calcMaxDrown();
+        this.testDate = System.currentTimeMillis();
     }
 
-    // Метод для расчета максимальной просадки
     private double calcMaxDrown() {
-        double peak = 0.0; // Начальная пиковая стоимость
-        double maxDrawdown = 0.0; // Начальная максимальная просадка
-        double cumulativeProfit = 0.0; // Кумулятивная прибыль
+        double peak = 0.0;
+        double maxDrawdown = 0.0;
+        double cumulativeProfit = 0.0;
 
         for (Position position : positions) {
-            cumulativeProfit += position.getProfit(); // Добавление прибыли каждой позиции к кумулятивной прибыли
+            cumulativeProfit += position.getProfit();
             if (cumulativeProfit > peak) {
-                peak = cumulativeProfit; // Обновление пикового значения
+                peak = cumulativeProfit;
             }
-            double drawdown = peak - cumulativeProfit; // Вычисление текущей просадки
+            double drawdown = peak - cumulativeProfit;
             if (drawdown > maxDrawdown) {
-                maxDrawdown = drawdown; // Обновление максимальной просадки, если текущая больше
+                maxDrawdown = drawdown;
             }
         }
 
-        return maxDrawdown; // Возвращение максимальной просадки
+        return maxDrawdown;
+    }
+
+    private double calcProfitPercentage() {
+        double initialInvestment = orders.stream()
+                .filter(order -> order.getDirection().equals("buy"))
+                .mapToDouble(order -> order.getExecutionPrice() * order.getVolume())
+                .sum();
+
+        if (initialInvestment == 0) {
+            return 0.0;
+        }
+
+        return (calcProfitableInDollars() / initialInvestment) * 100;
+    }
+
+    private double calcProfitableInDollars() {
+        return positions.stream()
+                .mapToDouble(Position::getProfit)
+                .sum();
+    }
+
+    private double calcProfitable() {
+        if (positions.isEmpty()) {
+            return 0.0;
+        }
+        long profitableTrades = positions.stream()
+                .filter(position -> position.getProfit() > 0)
+                .count();
+        return ((double) profitableTrades / positions.size()) * 100;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Статистика стратегии:\nМонета: %s\nТаймфрейм: %s\nДиапазон тестирования: %d - %d\nКоличество сделок: %d\nПроцент прибыльных сделок: %.2f%%\nПрофит в долларах: %.2f\nПрофит в проценте от изначального депозита: %.2f%%\nМаксимальная просадка: %.2f\nДата тестирования: %d",
+                coinName, timeframe, testStartTime, testEndTime, tradeCount, profitableTradePercentage, profitInDollars, profitPercentage, maxDrawdown, testDate);
     }
 }
