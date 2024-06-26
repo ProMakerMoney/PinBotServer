@@ -20,8 +20,8 @@ public class GeneticAlgorithmStrategyTester {
     private final StrategyTestingService strategyTestingService;
     private final Coin coin;
 
-    static final int POPULATION_SIZE = 500;
-    static final int GENERATIONS = 50;
+    static final int POPULATION_SIZE = 5000;
+    static final int GENERATIONS = 100;
     static double MUTATION_RATE = 0.1;
     static final double CROSSOVER_RATE = 0.9;
     static final double INITIAL_DEPOSIT = 10.0;
@@ -104,7 +104,7 @@ public class GeneticAlgorithmStrategyTester {
         }
 
         public boolean isValid() {
-            return percentageProfitTrades > 51 && totalTrades > 10 && totalProfit > 0;
+            return percentageProfitTrades > 56 && totalTrades > 10 && totalProfit > 0;
         }
     }
 

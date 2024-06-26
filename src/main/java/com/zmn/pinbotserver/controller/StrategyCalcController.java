@@ -42,7 +42,7 @@ public class StrategyCalcController {
         if (coinOptional.isPresent()) {
             Coin coin = coinOptional.get();
             String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
-            Path filePath = Paths.get("C:\\Users\\dev-n\\IdeaProjects\\PinBotServer\\historical_data", fileName);
+            Path filePath = Paths.get("C:\\Users\\PinBot\\IdeaProjects\\PinBotServer\\historical_data", fileName);
             List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
             // Определение количества свечек для обработки
             int candleCount = 8640; // 3 (три) месяца

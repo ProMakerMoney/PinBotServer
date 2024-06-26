@@ -33,7 +33,7 @@ public class StrategyTestingService {
         //System.out.println("Буду искать файл - " + fileName);
 
         // Указание пути к файлу CSV
-        Path filePath = Paths.get("C:\\Users\\dev-n\\IdeaProjects\\PinBotServer\\historical_data", fileName);
+        Path filePath = Paths.get("C:\\Users\\PinBot\\IdeaProjects\\PinBotServer\\historical_data", fileName);
 
         // Чтение свечек из CSV файла с помощью сервиса
         List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
