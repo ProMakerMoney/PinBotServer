@@ -1,6 +1,7 @@
 package com.zmn.pinbotserver;
 
 
+import com.zmn.pinbotserver.serverUtils.utils.JwtRequestFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
