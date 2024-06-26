@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,22 +38,6 @@ public class CoinService {
 
 
         return coinRepository.save(coin);
-    }
-
-    private double getMinTradingQtyFromAPI(String coinName) {
-        return 0.01; // Временно фиксированное значение
-    }
-
-    private double getMaxTradingQtyFromAPI(String coinName) {
-        return 10.0; // Временно фиксированное значение
-    }
-
-    private int getMinLeverageFromAPI(String coinName) {
-        return 1; // Временно фиксированное значение
-    }
-
-    private int getMaxLeverageFromAPI(String coinName) {
-        return 10; // Временно фиксированное значение
     }
 
     public void deleteCoin(Long id) {
