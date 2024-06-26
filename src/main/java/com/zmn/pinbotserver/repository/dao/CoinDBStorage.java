@@ -25,7 +25,7 @@ import java.util.Optional;
 public class CoinDBStorage implements CoinRepository {
 
     private final JdbcTemplate jdbcTemplate;
-    private SimpleJdbcInsert insertCoin;
+    private final SimpleJdbcInsert insertCoin;
 
     /**
      * Конструктор, инициализирующий jdbcTemplate.
@@ -65,7 +65,7 @@ public class CoinDBStorage implements CoinRepository {
         if (coins.isEmpty()) {
             return Optional.empty();
         } else {
-            return Optional.of(coins.get(0));
+            return Optional.of(coins.getFirst());
         }
     }
 

@@ -24,7 +24,6 @@ public class CoinService {
     public Coin addCoin(String coinName, String timeframe) {
         Coin coin = new Coin();
 
-
         coin.setCoinName(coinName);
         coin.setTimeframe(timeframe);
         coin.setDateOfAddition(Instant.now().getEpochSecond());
