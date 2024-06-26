@@ -59,4 +59,6 @@ public interface CoinRepository {
      * @return обновленный объект Coin.
      */
     Coin updateCoin(Coin coin);
+
+    Optional<Coin> findByCoinName(String name);
 }

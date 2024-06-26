@@ -131,6 +131,18 @@ public class CoinDBStorage implements CoinRepository {
         return coin;
     }
 
+    @Override
+    public Optional<Coin> findByCoinName(String coinName) {
+        String sql = "SELECT * FROM coins WHERE coin_name = ?";
+        List<Coin> coins = jdbcTemplate.query(sql, new CoinRowMapper(), coinName);
+        if (coins.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(coins.getFirst());
+        }
+    }
+
+
     /**
      * Метод для удаления монеты из базы данных по её идентификатору.
      *

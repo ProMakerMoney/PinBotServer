@@ -32,19 +32,18 @@ public class HistoricalDataController {
 
     /**
      * Метод для получения исторических данных по монете
-     * @param id идентификатор монеты
+     * @param name имя монеты
      * @return ResponseEntity с сообщением об успешном выполнении или ошибке
      */
-    @GetMapping("/getHistoricalData/{id}")
-    public ResponseEntity<String> getHistoricalData(@PathVariable Long id) {
-        Optional<Coin> coinOptional = coinRepository.findById(id);
+    @GetMapping("/getHistoricalData/{name}")
+    public ResponseEntity<String> getHistoricalData(@PathVariable String name) {
+        Optional<Coin> coinOptional = coinRepository.findByCoinName(name);
 
         if (coinOptional.isPresent()) {
             Coin coin = coinOptional.get();
 
             // Вынесение начальной даты в отдельную переменную
             LocalDateTime startDateTime = LocalDateTime.of(2024, 1, 1, 0, 0);
-
 
             List<Candle> candles = historicalDataService.generateHistoricalDataFile(
                     coin.getCoinName(), coin.getTimeframe(),
@@ -53,7 +52,7 @@ public class HistoricalDataController {
             if (!candles.isEmpty()) {
                 // Обновление дат в таблице coins
                 long startDate = startDateTime.toEpochSecond(ZoneOffset.UTC);
-                long endDate = candles.getLast().getTime();
+                long endDate = candles.get(candles.size() - 1).getTime();
                 coin.setStartDateTimeCounted(startDate);
                 coin.setEndDateTimeCounted(endDate);
                 coin.setDataCheck(true);
@@ -63,7 +62,7 @@ public class HistoricalDataController {
 
             return ResponseEntity.ok("Данные успешно собраны и сохранены.");
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Монета с указанным ID не найдена.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Монета с указанным именем не найдена.");
         }
     }
 }
