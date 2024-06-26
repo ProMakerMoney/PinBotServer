@@ -1,6 +1,6 @@
 package com.zmn.pinbotserver.serverUtils.controller;
 
-import com.zmn.pinbotserver.serverUtils.model.user.User;
+import com.zmn.pinbotserver.serverUtils.model.User;
 import com.zmn.pinbotserver.serverUtils.service.UserService;
 import com.zmn.pinbotserver.serverUtils.utils.JwtUtil;
 import org.springframework.http.HttpStatus;

@@ -1,6 +1,6 @@
 package com.zmn.pinbotserver.serverUtils.service;
 
-import com.zmn.pinbotserver.serverUtils.model.user.User;
+import com.zmn.pinbotserver.serverUtils.model.User;
 import com.zmn.pinbotserver.strategyTesting.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;

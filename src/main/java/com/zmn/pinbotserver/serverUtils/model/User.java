@@ -1,19 +1,21 @@
-package com.zmn.pinbotserver.serverUtils.model.user;
+package com.zmn.pinbotserver.serverUtils.model;
 
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+
+@Entity
+@Table(name = "users")
 public class User {
+    @Id
     private Long id;
     private String email;
     private String username;
     private String passwordHash;
 
     // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
 
     public String getEmail() {
         return email;
@@ -37,5 +39,13 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getId() {
+        return id;
     }
 }

@@ -1,6 +1,6 @@
 package com.zmn.pinbotserver.strategyTesting.repository;
 
-import com.zmn.pinbotserver.serverUtils.model.user.User;
+import com.zmn.pinbotserver.serverUtils.model.User;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
