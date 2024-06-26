@@ -97,6 +97,41 @@ public class CoinDBStorage implements CoinRepository {
     }
 
     /**
+     * Метод для обновления информации о монете в базе данных.
+     * Принимает объект Coin и обновляет соответствующую запись в таблице coins.
+     *
+     * @param coin объект Coin, содержащий обновленные данные.
+     * @return обновленный объект Coin.
+     */
+    public Coin updateCoin(Coin coin) {
+        // SQL-запрос для обновления записи в таблице coins.
+        // Обновляются все поля, за исключением идентификатора (id).
+        String sql = "UPDATE coins SET coin_name = ?, timeframe = ?, date_of_addition = ?, min_trading_qty = ?, " +
+                "max_trading_qty = ?, min_leverage = ?, max_leverage = ?, data_check = ?, is_counted = ?, " +
+                "start_date_time_counted = ?, end_date_time_counted = ? WHERE id = ?";
+
+        // Выполнение SQL-запроса с использованием jdbcTemplate.
+        // Параметры для обновления передаются в том же порядке, что и в SQL-запросе.
+        jdbcTemplate.update(sql,
+                coin.getCoinName(),           // Название монеты
+                coin.getTimeframe(),           // Таймфрейм
+                coin.getDateOfAddition(),      // Дата добавления
+                coin.getMinTradingQty(),       // Минимальное количество для торговли
+                coin.getMaxTradingQty(),       // Максимальное количество для торговли
+                coin.getMinLeverage(),         // Минимальное плечо
+                coin.getMaxLeverage(),         // Максимальное плечо
+                coin.getDataCheck(),           // Проверка данных (булево значение)
+                coin.getIsCounted(),           // Флаг, указывающий, было ли подсчитано (булево значение)
+                coin.getStartDateTimeCounted(),// Дата начала подсчета
+                coin.getEndDateTimeCounted(),  // Дата окончания подсчета
+                coin.getId()                   // Идентификатор монеты, используется для поиска записи, которую нужно обновить
+        );
+
+        // Возвращение обновленного объекта Coin.
+        return coin;
+    }
+
+    /**
      * Метод для удаления монеты из базы данных по её идентификатору.
      *
      * @param id идентификатор монеты, которую нужно удалить.

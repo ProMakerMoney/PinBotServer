@@ -50,4 +50,13 @@ public interface CoinRepository {
      * @return true, если монета существует, иначе false.
      */
     boolean existsById(Long id);
+
+    /**
+     * Метод для обновления информации о монете в базе данных.
+     * Принимает объект Coin и обновляет соответствующую запись в таблице coins.
+     *
+     * @param coin объект Coin, содержащий обновленные данные.
+     * @return обновленный объект Coin.
+     */
+    Coin updateCoin(Coin coin);
 }

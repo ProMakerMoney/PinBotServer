@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController // Аннотация, обозначающая, что данный класс является контроллером Spring RESTful веб-сервиса
-@RequestMapping("/api/coins") // Базовый URL для всех методов данного контроллера
+@RequestMapping("/api/coin") // Базовый URL для всех методов данного контроллера
 public class CoinController {
 
     private final CoinService coinService;
