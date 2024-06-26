@@ -45,7 +45,7 @@ public class StrategyCalcController {
             Path filePath = Paths.get("C:\\Users\\PinBot\\IdeaProjects\\PinBotServer\\historical_data", fileName);
             List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
             // Определение количества свечек для обработки
-            int candleCount = 8640; // 3 (три) месяца
+            int candleCount = 5760; // 3 (три) месяца
             // Вычисление начального индекса для подсписка последних 8640 свечек
             int startIndex = Math.max(candles.size() - candleCount, 0);
             // Создание подсписка последних 8640 свечек

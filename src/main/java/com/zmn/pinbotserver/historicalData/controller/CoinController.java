@@ -54,7 +54,7 @@ public class CoinController {
      * Метод для получения всех монет
      * @return ResponseEntity с списком всех монет или сообщением об их отсутствии
      */
-    @GetMapping("/all") // Обрабатывает HTTP GET запросы по URL /api/coins/all
+    @GetMapping("/getAll") // Обрабатывает HTTP GET запросы по URL /api/coins/getAll
     public ResponseEntity<?> getAllCoins() {
         List<Coin> coins = coinService.getAllCoins();
         if (coins.isEmpty()) {
