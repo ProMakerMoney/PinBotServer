@@ -104,7 +104,7 @@ public class GeneticAlgorithmStrategyTester {
         }
 
         public boolean isValid() {
-            return percentageProfitTrades > 55 && totalTrades > 30 && totalProfit > 0;
+            return percentageProfitTrades > 56 && totalTrades > 30 && totalProfit > 0;
         }
     }
 
