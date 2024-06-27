@@ -40,10 +40,10 @@ public class StrategyTestingService {
         List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
 
         // Создание объекта стратегии с заданными параметрами и начальным депозитом
-        Strategy strategy = new Strategy(strategyParams, 10.0, coin.getMinTradingQty());
+        Strategy strategy = new Strategy(strategyParams, 10.0, coin.getMinTradingQty(), 10.0);
 
         // Определение количества свечек для обработки
-        int candleCount = 8640; // 3 (три) месяца
+        int candleCount = 2880; // 3 (три) месяца
         // Вычисление начального индекса для подсписка последних 8640 свечек
         int startIndex = Math.max(candles.size() - candleCount, 0);
         // Создание подсписка последних 8640 свечек

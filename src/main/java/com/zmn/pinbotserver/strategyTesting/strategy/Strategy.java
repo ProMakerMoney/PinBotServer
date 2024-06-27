@@ -40,12 +40,13 @@ public class Strategy {
     List<Position> positionHistory = new ArrayList<>();
 
     double initialDeposit;
+    double risk;
     double currentDeposit;
     double marginPerOrder;
     double minTradingQty;
 
     // Конструктор стратегии
-    public Strategy(StrategyParams strategyParams, double initialDeposit, double minTradingQty) {
+    public Strategy(StrategyParams strategyParams, double initialDeposit, double minTradingQty, double risk) {
         this.tradingPair = strategyParams.getCoinName();
         this.LEVERAGE = strategyParams.getLEVERAGE();
         this.CCI_PERIOD = strategyParams.getCCI();
@@ -55,9 +56,26 @@ public class Strategy {
         this.MAXOrders = strategyParams.getMaxOpenOrder();
         this.initialDeposit = initialDeposit;
         this.currentDeposit = initialDeposit;
-        this.marginPerOrder = minTradingQty; // Начальная маржа на сделку
         this.minTradingQty = minTradingQty;
+        this.risk = risk;
     }
+
+    /**
+     * Метод для расчета маржи на сделку
+     */
+    private void calculateInitialMarginPerOrder() {
+        // Расчет маржи на основе текущего депозита и риска
+        this.marginPerOrder = (currentDeposit * risk / 100) / MAXOrders;
+
+        // Перевод минимального торгового количества в доллары
+        double minMarginInDollars = minTradingQty * currentPrice;
+
+        // Проверка, чтобы маржа не была меньше минимального торгового количества в долларах
+        if (this.marginPerOrder < minMarginInDollars) {
+            this.marginPerOrder = minMarginInDollars;
+        }
+    }
+
 
     /**
      * Метод для расчета EMA
@@ -88,7 +106,6 @@ public class Strategy {
         int period = CCI_PERIOD; // Период для CCI
         if (candleHistory.size() < period) {
             // Если недостаточно данных, возвращаем 0 и выводим сообщение
-            //System.out.println("Not enough data to calculate CCI.");
             return 0;
         }
 
@@ -120,13 +137,11 @@ public class Strategy {
             currentPrice = candle.getClose();
             candleHistory.add(candle);
         } else {
-            //System.out.println("Свеча в списке уже есть!");
             return;
         }
 
         // Если недостаточно данных, возвращаемся
         if (candleHistory.size() < MINIMUM_CANDLES) {
-            //System.out.println("Недостаточно данных");
             return;
         }
 
@@ -141,9 +156,6 @@ public class Strategy {
 
         // Обрабатываем ордера на основе новых значений
         manageOrders(newCCI, newEMA, candle);
-
-        // Вывод состояния стратегии
-        // printStrategyState();
     }
 
     // Переменные состояния для управления позициями
@@ -173,13 +185,11 @@ public class Strategy {
 
         // Ликвидация LONG ордеров, если цена достигает уровня ликвидации
         if (longIsOpen && currentPrice <= last_long_price * (1 - liquidationLevelPer / 100)) {
-            //System.out.println("Ликвидация LONG позиции");
             closeLongPosition(candle);
         }
 
         // Ликвидация SHORT ордеров, если цена достигает уровня ликвидации
         if (shortIsOpen && currentPrice >= last_short_price * (1 + liquidationLevelPer / 100)) {
-            //System.out.println("Ликвидация SHORT позиции");
             closeShortPosition(candle);
         }
 
@@ -248,21 +258,18 @@ public class Strategy {
      * Метод для открытия LONG позиции
      */
     private void openLongPosition(Candle candle) {
+        // Устанавливаем начальную маржу для всех последующих сделок
+        calculateInitialMarginPerOrder();
+
         if (currentDeposit < marginPerOrder) {
-            //System.out.println("Недостаточно средств для открытия LONG позиции");
             return;
         }
 
-        //System.out.println("Открыть LONG");
         openOrders++;
         currentDeposit -= marginPerOrder;
-        marginPerOrder += minTradingQty; // Увеличение маржи для следующей сделки
-
-//        System.out.printf("Пара: %s, Действие: Покупка, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n",
-//                tradingPair, candle.getTime(), minTradingQty, currentPrice, STATUS.OPEN);
 
         position = new Position(tradingPair, TYPE.LONG, LEVERAGE);
-        Order order = new Order(tradingPair, "buy", candle.getTime(), minTradingQty, currentPrice, STATUS.OPEN);
+        Order order = new Order(tradingPair, "buy", candle.getTime(), marginPerOrder, currentPrice, STATUS.OPEN);
         position.addOrder(order);
         orderHistory.add(order);
         last_long_price = currentPrice;
@@ -275,19 +282,13 @@ public class Strategy {
      */
     private void averageLongPosition(Candle candle) {
         if (currentDeposit < marginPerOrder) {
-            //System.out.println("Недостаточно средств для усреднения LONG позиции");
             return;
         }
 
-        //System.out.println("Усреднить LONG");
         openOrders++;
         currentDeposit -= marginPerOrder;
-        marginPerOrder += minTradingQty; // Увеличение маржи для следующей сделки
 
-        //System.out.printf("Пара: %s, Действие: Покупка, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n",
-        //        tradingPair, candle.getTime(), minTradingQty, currentPrice, STATUS.OPEN);
-
-        Order order = new Order(tradingPair, "buy", candle.getTime(), minTradingQty, currentPrice, STATUS.OPEN);
+        Order order = new Order(tradingPair, "buy", candle.getTime(), marginPerOrder, currentPrice, STATUS.OPEN);
         position.addOrder(order);
         orderHistory.add(order);
         last_long_price = currentPrice;
@@ -299,14 +300,9 @@ public class Strategy {
      * Метод для закрытия всех LONG позиций
      */
     private void closeLongPosition(Candle candle) {
-        //System.out.println("Закрыть все LONG позиции");
-        currentDeposit += marginPerOrder; // Возврат маржи на депозит
-        marginPerOrder = minTradingQty; // Сброс маржи для следующей сделки
+        currentDeposit += marginPerOrder * openOrders;
 
-        //System.out.printf("Пара: %s, Действие: Продажа, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n",
-        //        tradingPair, candle.getTime(), minTradingQty * openOrders, currentPrice, STATUS.CLOSE);
-
-        Order order = new Order(tradingPair, "sell", candle.getTime(), minTradingQty * openOrders, currentPrice, STATUS.CLOSE);
+        Order order = new Order(tradingPair, "sell", candle.getTime(), marginPerOrder * openOrders, currentPrice, STATUS.CLOSE);
         position.closePosition(order);
         orderHistory.add(order);
 
@@ -322,21 +318,18 @@ public class Strategy {
      * Метод для открытия SHORT позиции
      */
     private void openShortPosition(Candle candle) {
+        // Устанавливаем начальную маржу для всех последующих сделок
+        calculateInitialMarginPerOrder();
+
         if (currentDeposit < marginPerOrder) {
-            //System.out.println("Недостаточно средств для открытия SHORT позиции");
             return;
         }
 
-        //System.out.println("Открыть SHORT позицию");
         openOrders++;
         currentDeposit -= marginPerOrder;
-        marginPerOrder += minTradingQty; // Увеличение маржи для следующей сделки
-
-//        System.out.printf("Пара: %s, Действие: Продажа, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n",
-//                tradingPair, candle.getTime(), minTradingQty, currentPrice, STATUS.OPEN);
 
         position = new Position(tradingPair, TYPE.SHORT, LEVERAGE);
-        Order order = new Order(tradingPair, "sell", candle.getTime(), minTradingQty, currentPrice, STATUS.OPEN);
+        Order order = new Order(tradingPair, "sell", candle.getTime(), marginPerOrder, currentPrice, STATUS.OPEN);
         position.addOrder(order);
         orderHistory.add(order);
         last_short_price = currentPrice;
@@ -349,19 +342,13 @@ public class Strategy {
      */
     private void averageShortPosition(Candle candle) {
         if (currentDeposit < marginPerOrder) {
-            //System.out.println("Недостаточно средств для усреднения SHORT позиции");
             return;
         }
 
-        //System.out.println("Усреднить SHORT");
         openOrders++;
         currentDeposit -= marginPerOrder;
-        marginPerOrder += minTradingQty; // Увеличение маржи для следующей сделки
 
-//        System.out.printf("Пара: %s, Действие: Продажа, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n",
-//                tradingPair, candle.getTime(), minTradingQty, currentPrice, STATUS.OPEN);
-
-        Order order = new Order(tradingPair, "sell", candle.getTime(), minTradingQty, currentPrice, STATUS.OPEN);
+        Order order = new Order(tradingPair, "sell", candle.getTime(), marginPerOrder, currentPrice, STATUS.OPEN);
         position.addOrder(order);
         orderHistory.add(order);
         last_short_price = currentPrice;
@@ -373,14 +360,9 @@ public class Strategy {
      * Метод для закрытия всех SHORT позиций
      */
     private void closeShortPosition(Candle candle) {
-        //System.out.println("Закрыть все SHORT позиции");
-        currentDeposit += marginPerOrder; // Возврат маржи на депозит
-        marginPerOrder = minTradingQty; // Сброс маржи для следующей сделки
+        currentDeposit += marginPerOrder * openOrders;
 
-//        System.out.printf("Пара: %s, Действие: Покупка, Время свечи: %s, Количество: %.2f, Текущая цена: %.2f, Статус: %s%n",
-//                tradingPair, candle.getTime(), minTradingQty * openOrders, currentPrice, STATUS.CLOSE);
-
-        Order order = new Order(tradingPair, "buy", candle.getTime(), minTradingQty * openOrders, currentPrice, STATUS.CLOSE);
+        Order order = new Order(tradingPair, "buy", candle.getTime(), marginPerOrder * openOrders, currentPrice, STATUS.CLOSE);
         position.closePosition(order);
         orderHistory.add(order);
 
@@ -389,35 +371,5 @@ public class Strategy {
         shortIsReadyAVG = false;
         openOrders = 0;
         positionHistory.add(position);
-    }
-
-    private void printStrategyState() {
-        StringBuilder state = new StringBuilder();
-
-        if (longIsOpen) {
-            state.append("Открыта позиция: LONG\n");
-        } else if (shortIsOpen) {
-            state.append("Открыта позиция: SHORT\n");
-        } else {
-            state.append("Позиция не открыта\n");
-        }
-
-        if (longIsReady) {
-            state.append("Готова открыть позицию: LONG\n");
-        } else if (shortIsReady) {
-            state.append("Готова открыть позицию: SHORT\n");
-        } else {
-            state.append("Не готова открыть новую позицию\n");
-        }
-
-        if (longIsReadyAVG) {
-            state.append("Готова усреднять позицию: LONG\n");
-        } else if (shortIsReadyAVG) {
-            state.append("Готова усреднять позицию: SHORT\n");
-        } else {
-            state.append("Не готова усреднять позицию\n");
-        }
-
-        System.out.println(state);
     }
 }
