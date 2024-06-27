@@ -26,31 +26,13 @@ public class StrategyTestingService {
         this.dataFillerService = dataFillerService;
     }
 
-    public StrategyStats testStrategy(Coin coin, StrategyParams strategyParams) throws IOException {
-        // Формирование имени файла на основе торговой пары и таймфрейма
-        String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
-
-        // Вывод в консоль сообщения о поиске файла
-        //System.out.println("Буду искать файл - " + fileName);
-
-        // Указание пути к файлу CSV
-        Path filePath = Paths.get("C:\\Users\\PinBot\\IdeaProjects\\PinBotServer\\historical_data", fileName);
-
-        // Чтение свечек из CSV файла с помощью сервиса
-        List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
+    public StrategyStats testStrategy(Coin coin, StrategyParams strategyParams, List<Candle> candles) throws IOException {
 
         // Создание объекта стратегии с заданными параметрами и начальным депозитом
-        Strategy strategy = new Strategy(strategyParams, 10.0, coin.getMinTradingQty(), 10.0);
-
-        // Определение количества свечек для обработки
-        int candleCount = 2880; // 3 (три) месяца
-        // Вычисление начального индекса для подсписка последних 8640 свечек
-        int startIndex = Math.max(candles.size() - candleCount, 0);
-        // Создание подсписка последних 8640 свечек
-        List<Candle> recentCandles = candles.subList(startIndex, candles.size());
+        Strategy strategy = new Strategy(strategyParams, 100.0, coin.getMinTradingQty(), 10.0);
 
         // Обработка каждой свечки из подсписка с помощью стратегии
-        for (Candle candle : recentCandles) {
+        for (Candle candle : candles) {
             strategy.onPriceUpdate(candle);
         }
 
@@ -59,6 +41,6 @@ public class StrategyTestingService {
         List<Order> orders = strategy.getOrderHistory();
 
         // Создание и возвращение объекта StrategyStats
-        return new StrategyStats(positions, orders, recentCandles);
+        return new StrategyStats(positions, orders, candles);
     }
 }

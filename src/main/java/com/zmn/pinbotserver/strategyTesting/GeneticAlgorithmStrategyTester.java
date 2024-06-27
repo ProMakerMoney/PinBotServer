@@ -20,7 +20,7 @@ public class GeneticAlgorithmStrategyTester {
     private final StrategyTestingService strategyTestingService;
     private final Coin coin;
 
-    static final int POPULATION_SIZE = 2000;
+    static final int POPULATION_SIZE = 1000;
     static final int GENERATIONS = 100;
     static double MUTATION_RATE = 0.1;
     static final double CROSSOVER_RATE = 0.9;
@@ -104,7 +104,7 @@ public class GeneticAlgorithmStrategyTester {
         }
 
         public boolean isValid() {
-            return percentageProfitTrades > 53 && totalTrades > 50 && totalProfit > 0;
+            return percentageProfitTrades > 55 && totalTrades > 20 && totalProfit > 0;
         }
     }
 
@@ -141,7 +141,7 @@ public class GeneticAlgorithmStrategyTester {
                             individual.ema,
                             individual.ratio
                     );
-                    StrategyStats stats = strategyTestingService.testStrategy(coin, params);
+                    StrategyStats stats = strategyTestingService.testStrategy(coin, params, candles);
 
                     individual.totalProfit = stats.getProfitInDollars();
                     individual.totalTrades = stats.getTradeCount();
