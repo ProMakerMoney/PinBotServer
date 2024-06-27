@@ -14,6 +14,8 @@ import java.util.List;
 
 public class Strategy {
 
+    boolean strategyAllowed = true; // Флаг, разрешающий или запрещающий работу стратегии
+
     // Параметры стратегии
     int LEVERAGE; // Плечо для торговли
     int CCI_PERIOD; // Период для расчета CCI
@@ -69,24 +71,25 @@ public class Strategy {
      * Метод для расчета маржи на сделку и соответствующего количества монет
      */
     private void calculateInitialMarginPerOrder() {
-        // Расчет маржи на основе текущего депозита и риска
-        this.marginPerOrder = (currentDeposit * risk / 100) / MAXOrders;
+        this.marginQTY = (currentDeposit * (risk / 100) * LEVERAGE) / (MAXOrders * currentPrice);
 
-        // Перевод минимального торгового количества в доллары
-        double minMarginInDollars = minTradingQty * currentPrice;
+        // Округляем marginQTY в меньшую сторону до одного знака после запятой
+        this.marginQTY = Math.floor(this.marginQTY * 10) / 10.0;
 
-        // Проверка, чтобы маржа не была меньше минимального торгового количества в долларах
-        if (this.marginPerOrder < minMarginInDollars) {
-            this.marginPerOrder = minMarginInDollars;
+//        if(marginQTY < minTradingQty){
+//            this.marginQTY = minTradingQty;
+//        }
+
+        // Проверяем, если marginQTY меньше minTradingQty не более чем на 10%
+        if (this.marginQTY < this.minTradingQty) {
+            if (this.marginQTY >= this.minTradingQty * 0.9) {
+                this.marginQTY = this.minTradingQty;
+                strategyAllowed = true; // Разрешаем стратегии работать
+            } else {
+                strategyAllowed = false; // Запрещаем стратегии работать
+            }
         }
-
-        // Рассчитываем количество монет, соответствующее рассчитанной марже в долларах
-        this.marginQTY = this.marginPerOrder / currentPrice;
-
-        // Округляем marginQty до ближайшего значения, кратного minTradingQty
-        this.marginQTY = Math.floor(this.marginQTY / minTradingQty) * minTradingQty;
     }
-
 
     /**
      * Метод для расчета EMA
@@ -166,7 +169,9 @@ public class Strategy {
         double newEMA = calculateEMA(newCCI, EMA_PERIOD);
 
         // Обрабатываем ордера на основе новых значений
-        manageOrders(newCCI, newEMA, candle);
+        if(strategyAllowed) {
+            manageOrders(newCCI, newEMA, candle);
+        }
     }
 
     // Переменные состояния для управления позициями
@@ -269,15 +274,13 @@ public class Strategy {
      * Метод для открытия LONG позиции
      */
     private void openLongPosition(Candle candle) {
-        // Устанавливаем начальную маржу для всех последующих сделок
+        // Пересчет маржи для следующего пула сделок
         calculateInitialMarginPerOrder();
-
         if (currentDeposit < marginPerOrder * MAXOrders) {
             return;
         }
 
         openOrders++;
-        currentDeposit -= marginPerOrder;
 
         position = new Position(tradingPair, TYPE.LONG, LEVERAGE);
         Order order = new Order(tradingPair, "buy", candle.getTime(), marginQTY, currentPrice, STATUS.OPEN);
@@ -297,7 +300,6 @@ public class Strategy {
         }
 
         openOrders++;
-        currentDeposit -= marginPerOrder;
 
         Order order = new Order(tradingPair, "buy", candle.getTime(), marginQTY, currentPrice, STATUS.OPEN);
         position.addOrder(order);
@@ -318,8 +320,8 @@ public class Strategy {
 
         // Обновление депозита
         double profit = position.getProfit();
-        currentDeposit += marginPerOrder * openOrders + profit;
-
+        currentDeposit += profit;
+        //System.out.println("---- Текущий депозит: " + currentDeposit);
         // Обновление состояния стратегии
         longIsOpen = false;
         longIsReady = false;
@@ -327,16 +329,14 @@ public class Strategy {
         cciLongRollback = false;
         openOrders = 0;
         positionHistory.add(position);
-
-        // Пересчет маржи для следующего пула сделок
-        calculateInitialMarginPerOrder();
     }
 
     /**
      * Метод для открытия SHORT позиции
      */
     private void openShortPosition(Candle candle) {
-        // Устанавливаем начальную маржу для всех последующих сделок
+
+        // Пересчет маржи для следующего пула сделок
         calculateInitialMarginPerOrder();
 
         if (currentDeposit < marginPerOrder  * MAXOrders) {
@@ -344,7 +344,6 @@ public class Strategy {
         }
 
         openOrders++;
-        currentDeposit -= marginPerOrder;
 
         position = new Position(tradingPair, TYPE.SHORT, LEVERAGE);
         Order order = new Order(tradingPair, "sell", candle.getTime(), marginQTY, currentPrice, STATUS.OPEN);
@@ -364,7 +363,6 @@ public class Strategy {
         }
 
         openOrders++;
-        currentDeposit -= marginPerOrder;
 
         Order order = new Order(tradingPair, "sell", candle.getTime(), marginQTY, currentPrice, STATUS.OPEN);
         position.addOrder(order);
@@ -385,8 +383,8 @@ public class Strategy {
 
         // Обновление депозита
         double profit = position.getProfit();
-        currentDeposit += marginPerOrder * openOrders + profit;
-
+        currentDeposit += profit;
+        //System.out.println("---- Текущий депозит: " + currentDeposit);
         // Обновление состояния стратегии
         shortIsOpen = false;
         shortIsReady = false;
@@ -394,7 +392,5 @@ public class Strategy {
         openOrders = 0;
         positionHistory.add(position);
 
-        // Пересчет маржи для следующего пула сделок
-        calculateInitialMarginPerOrder();
     }
 }

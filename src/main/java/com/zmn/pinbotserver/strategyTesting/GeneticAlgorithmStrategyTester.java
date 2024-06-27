@@ -104,23 +104,19 @@ public class GeneticAlgorithmStrategyTester {
         }
 
         public boolean isValid() {
-            return percentageProfitTrades > 55 && totalTrades > 20 && totalProfit > 0;
+            return percentageProfitTrades > 55 && totalTrades > 30 && totalProfit > 0;
         }
     }
 
     List<Individual> initializePopulation(int size) {
         List<Individual> population = new ArrayList<>();
-        double currentPrice = candles.get(candles.size() - 1).getClose();
         for (int i = 0; i < size; i++) {
-            int maxOrders = ThreadLocalRandom.current().nextInt(1, 11);
-            int leverageMin = calculateMinLeverage(currentPrice, coin.getMinTradingQty(), INITIAL_DEPOSIT, maxOrders);
-            int leverage = ThreadLocalRandom.current().nextInt(leverageMin, 26);
             population.add(new Individual(
                     ThreadLocalRandom.current().nextInt(1, 301),
                     ThreadLocalRandom.current().nextInt(1, 301),
-                    leverage,
+                    ThreadLocalRandom.current().nextInt(1, 31),
                     ThreadLocalRandom.current().nextDouble(0.5, 4.1),
-                    maxOrders
+                    ThreadLocalRandom.current().nextInt(1, 11)
             ));
         }
         return population;
@@ -212,8 +208,7 @@ public class GeneticAlgorithmStrategyTester {
 
         int leverage = individual.leverage;
         if (ThreadLocalRandom.current().nextDouble() < MUTATION_RATE) {
-            leverage = Math.max(calculateMinLeverage(candles.get(candles.size() - 1).getClose(), coin.getMinTradingQty(), INITIAL_DEPOSIT, individual.maxOrders),
-                    ThreadLocalRandom.current().nextInt(2, 26));
+            leverage = ThreadLocalRandom.current().nextInt(1, 31);
         }
 
         double ratio = individual.ratio;
@@ -233,9 +228,4 @@ public class GeneticAlgorithmStrategyTester {
         return population.stream().max(Comparator.comparingDouble(Individual::getFitness)).orElseThrow(NoSuchElementException::new);
     }
 
-    private int calculateMinLeverage(double currentPrice, double minTradingQty, double initialDeposit, int maxOpenOrders) {
-        double costPerTrade = currentPrice * minTradingQty;
-        double requiredFunds = costPerTrade * maxOpenOrders;
-        return (int) Math.ceil(requiredFunds / initialDeposit);
-    }
 }
