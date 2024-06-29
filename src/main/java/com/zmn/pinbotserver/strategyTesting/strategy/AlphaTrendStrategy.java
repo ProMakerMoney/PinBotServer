@@ -50,7 +50,8 @@ public class AlphaTrendStrategy {
     int openOrders = 0;
 
     // Конструктор для инициализации параметров стратегии
-    public AlphaTrendStrategy(double coeff, int AP) {
+    public AlphaTrendStrategy(double initialDeposit, double coeff, int AP) {
+        this.initialDeposit = initialDeposit;
         this.coeff = coeff;
         this.AP = AP;
     }
