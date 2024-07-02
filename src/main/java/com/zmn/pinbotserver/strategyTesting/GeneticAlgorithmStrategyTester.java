@@ -1,10 +1,10 @@
 package com.zmn.pinbotserver.strategyTesting;
 
-import com.zmn.pinbotserver.historicalData.model.candle.Candle;
-import com.zmn.pinbotserver.historicalData.model.coin.Coin;
-import com.zmn.pinbotserver.strategyTesting.model.strategy.StrategyParams;
-import com.zmn.pinbotserver.strategyTesting.model.strategy.StrategyStats;
-import com.zmn.pinbotserver.strategyTesting.service.StrategyTestingService;
+import com.zmn.pinbotserver.model.candle.Candle;
+import com.zmn.pinbotserver.model.coin.Coin;
+import com.zmn.pinbotserver.model.strategy.StrategyParams;
+import com.zmn.pinbotserver.model.strategy.StrategyStats;
+import com.zmn.pinbotserver.service.strategyTesting.StrategyTestingService;
 
 import java.io.IOException;
 import java.util.ArrayList;

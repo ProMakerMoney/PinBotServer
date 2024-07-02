@@ -1,13 +1,14 @@
--- Создание таблицы USERS
-CREATE TABLE IF NOT EXISTS USERS (
-                                     id INTEGER PRIMARY KEY AUTO_INCREMENT,
-                                     email VARCHAR(255) NOT NULL UNIQUE,
-                                     username VARCHAR(255) NOT NULL UNIQUE,
-                                     password_hash VARCHAR(255) NOT NULL,
-                                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                                     is_active BOOLEAN DEFAULT TRUE NOT NULL
+-- Создание таблицы USER
+CREATE TABLE IF NOT EXISTS USER (
+                                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                                    email VARCHAR(255) NOT NULL UNIQUE,
+                                    login VARCHAR(255) NOT NULL UNIQUE,
+                                    password_hash VARCHAR(255) NOT NULL,
+                                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+                                    is_active BOOLEAN DEFAULT TRUE NOT NULL
 );
+
 
 -- Создание таблицы COINS
 CREATE TABLE IF NOT EXISTS COINS (
