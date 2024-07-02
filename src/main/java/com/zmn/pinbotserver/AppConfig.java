@@ -1,37 +1,41 @@
 package com.zmn.pinbotserver;
 
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.web.client.RestTemplate;
 
 import javax.sql.DataSource;
+import java.util.Properties;
 
-@Configuration // Аннотация, обозначающая, что данный класс является конфигурационным для Spring
+@Configuration
 public class AppConfig {
 
     /**
      * Создание бина RestTemplate
      * @return новый экземпляр RestTemplate
      */
-    @Bean // Аннотация, обозначающая, что данный метод создает бин
+    @Bean
     public RestTemplate restTemplate() {
-        return new RestTemplate(); // Создаем и возвращаем новый экземпляр RestTemplate
+        return new RestTemplate();
     }
 
     /**
-     * Создание бина DataSource для подключения к базе данных PostgreSQL
-     * @return новый экземпляр DriverManagerDataSource, настроенный для подключения к базе данных PostgreSQL
+     * Создание бина DataSource для H2 базы данных
+     * @return новый экземпляр DataSource
      */
-    @Bean // Аннотация, обозначающая, что данный метод создает бин DataSource
+    @Bean
     public DataSource dataSource() {
-        DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName("org.postgresql.Driver"); // Указываем драйвер PostgreSQL
-        dataSource.setUrl("jdbc:postgresql://localhost:5432/pinbotDB"); // Указываем URL базы данных PostgreSQL
-        dataSource.setUsername("postgres"); // Указываем имя пользователя для базы данных PostgreSQL
-        dataSource.setPassword("9278"); // Указываем пароль для базы данных PostgreSQL
-        return dataSource;
+        return DataSourceBuilder.create()
+                .url("jdbc:h2:mem:testdb")
+                .driverClassName("org.h2.Driver")
+                .username("sa")
+                .password("")
+                .build();
     }
 
     /**
@@ -39,8 +43,40 @@ public class AppConfig {
      * @param dataSource источник данных, передаваемый в бин
      * @return новый экземпляр JdbcTemplate, настроенный с DataSource
      */
-    @Bean // Аннотация, обозначающая, что данный метод создает бин JdbcTemplate
+    @Bean
     public JdbcTemplate jdbcTemplate(DataSource dataSource) {
-        return new JdbcTemplate(dataSource); // Создаем и возвращаем новый экземпляр JdbcTemplate с DataSource
+        return new JdbcTemplate(dataSource);
+    }
+
+    /**
+     * Создание бина LocalContainerEntityManagerFactoryBean для JPA
+     * @param dataSource источник данных, передаваемый в бин
+     * @return новый экземпляр LocalContainerEntityManagerFactoryBean
+     */
+    @Bean
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource dataSource) {
+        LocalContainerEntityManagerFactoryBean emf = new LocalContainerEntityManagerFactoryBean();
+        emf.setDataSource(dataSource);
+        emf.setPackagesToScan("com.zmn.pinbotserver.model");
+        emf.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
+
+        Properties properties = new Properties();
+        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.H2Dialect");
+        properties.setProperty("hibernate.hbm2ddl.auto", "update");
+        emf.setJpaProperties(properties);
+
+        return emf;
+    }
+
+    /**
+     * Создание бина JpaTransactionManager для управления транзакциями JPA
+     * @param entityManagerFactory фабрика менеджера сущностей, передаваемая в бин
+     * @return новый экземпляр JpaTransactionManager
+     */
+    @Bean
+    public JpaTransactionManager transactionManager(LocalContainerEntityManagerFactoryBean entityManagerFactory) {
+        JpaTransactionManager transactionManager = new JpaTransactionManager();
+        transactionManager.setEntityManagerFactory(entityManagerFactory.getObject());
+        return transactionManager;
     }
 }

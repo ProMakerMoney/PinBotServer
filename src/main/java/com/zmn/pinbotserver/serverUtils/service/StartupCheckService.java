@@ -17,11 +17,8 @@ import java.sql.SQLException;
 @Service // Аннотация, обозначающая, что данный класс является сервисом в Spring
 public class StartupCheckService {
 
-    private String backupDiskPath;
-    private String exchangeApiUrl = "https://api.bybit.com/v5/market/time"; // URL для проверки соединения с биржей
-    private String databaseUrl = "jdbc:postgresql://localhost:5432/pinbotDB"; // URL для подключения к базе данных
-    private String databaseUsername = "postgres"; // Имя пользователя базы данных
-    private String databasePassword = "9278"; // Пароль базы данных
+    private final String exchangeApiUrl = "https://api.bybit.com/v5/market/time"; // URL для проверки соединения с биржей
+    private final String databaseUrl = "jdbc:h2:file:./db/pinbot"; // URL для подключения к базе данных
 
     private final RestTemplate restTemplate;
     private final JdbcTemplate jdbcTemplate;
@@ -36,31 +33,28 @@ public class StartupCheckService {
     public void performStartupChecks() {
         checkInternetConnection(); // Проверка интернет-соединения
         checkExchangeConnection(); // Проверка соединения с биржей
-        checkDatabaseConnection(); // Проверка соединения с базой данных
-        checkBackupSystem(); // Проверка системы бэкапов
-        checkAndCreateCoinsTable(); // Проверка и создание таблицы coins
-        checkAndCreateUsersTable(); // Проверка и создание таблицы users
+        //checkDatabaseConnection(); // Проверка соединения с базой данных
+        //checkBackupSystem(); // Проверка системы бэкапов
+        //checkAndCreateCoinsTable(); // Проверка и создание таблицы coins
+        //checkAndCreateUsersTable(); // Проверка и создание таблицы users
     }
 
     /**
      * Метод для проверки и создания таблицы users
      */
     private void checkAndCreateUsersTable() {
-        String checkTableExistsQuery = "SELECT EXISTS (" +
-                "SELECT FROM information_schema.tables " +
-                "WHERE table_name = 'users'" +
-                ")";
-        Boolean tableExists = jdbcTemplate.queryForObject(checkTableExistsQuery, Boolean.class);
+        String checkTableExistsQuery = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'USERS'";
+        Integer tableExists = jdbcTemplate.queryForObject(checkTableExistsQuery, Integer.class);
 
-        if (tableExists == null || !tableExists) {
+        if (tableExists == null || tableExists == 0) {
             String createTableQuery = "CREATE TABLE USERS (" +
-                    "id SERIAL PRIMARY KEY, " +
+                    "id INTEGER PRIMARY KEY AUTO_INCREMENT, " +
                     "email VARCHAR(255) NOT NULL UNIQUE, " +
                     "username VARCHAR(255) NOT NULL UNIQUE, " +
                     "password_hash VARCHAR(255) NOT NULL, " +
-                    "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
-                    "updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
-                    "is_active BOOLEAN NOT NULL DEFAULT TRUE" +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, " +
+                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, " +
+                    "is_active BOOLEAN DEFAULT TRUE NOT NULL" +
                     ")";
             jdbcTemplate.execute(createTableQuery);
             System.out.println("Таблица USERS: создана!");
@@ -73,26 +67,23 @@ public class StartupCheckService {
      * Метод для проверки и создания таблицы coins
      */
     private void checkAndCreateCoinsTable() {
-        String checkTableExistsQuery = "SELECT EXISTS (" +
-                "SELECT FROM information_schema.tables " +
-                "WHERE table_name = 'coins'" +
-                ")";
-        Boolean tableExists = jdbcTemplate.queryForObject(checkTableExistsQuery, Boolean.class);
+        String checkTableExistsQuery = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'COINS'";
+        Integer tableExists = jdbcTemplate.queryForObject(checkTableExistsQuery, Integer.class);
 
-        if (tableExists == null || !tableExists) {
+        if (tableExists == null || tableExists == 0) {
             String createTableQuery = "CREATE TABLE COINS (" +
-                    "id SERIAL PRIMARY KEY, " +
+                    "id INTEGER PRIMARY KEY AUTO_INCREMENT, " +
                     "coin_name VARCHAR(255) NOT NULL, " +
                     "timeframe VARCHAR(255) NOT NULL, " +
-                    "date_of_addition BIGINT DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) NOT NULL, " +
-                    "min_trading_qty DOUBLE PRECISION, " +
-                    "max_trading_qty DOUBLE PRECISION, " +
-                    "min_leverage INT, " +
-                    "max_leverage INT, " +
-                    "data_check BOOLEAN DEFAULT false NOT NULL, " +
-                    "is_counted BOOLEAN DEFAULT false NOT NULL, " +
-                    "start_date_time_counted BIGINT DEFAULT 0 NOT NULL," +
-                    "end_date_time_counted BIGINT DEFAULT 0 NOT NULL"+
+                    "date_of_addition TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, " +
+                    "min_trading_qty DOUBLE, " +
+                    "max_trading_qty DOUBLE, " +
+                    "min_leverage INTEGER, " +
+                    "max_leverage INTEGER, " +
+                    "data_check BOOLEAN DEFAULT FALSE NOT NULL, " +
+                    "is_counted BOOLEAN DEFAULT FALSE NOT NULL, " +
+                    "start_date_time_counted TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, " +
+                    "end_date_time_counted TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL" +
                     ")";
             jdbcTemplate.execute(createTableQuery);
             System.out.println("Таблица COINS: создана!");
@@ -144,7 +135,7 @@ public class StartupCheckService {
         String ANSI_RED = "\u001B[31m";
         String ANSI_RESET = "\u001B[0m";
 
-        try (Connection connection = DriverManager.getConnection(databaseUrl, databaseUsername, databasePassword)) {
+        try (Connection connection = DriverManager.getConnection(databaseUrl)) {
             if (connection != null && !connection.isClosed()) {
                 System.out.println(ANSI_GREEN + "Соединение с базой данных: ОК" + ANSI_RESET);
             } else {
