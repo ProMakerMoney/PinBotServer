@@ -54,20 +54,17 @@ public class StrategyCalcController {
             List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
             // Определение количества свечек для обработки
             int candleCount = 8640; // 3 (три) месяца
-            // Вычисление начального индекса для подсписка последних 2880 свечек
+            // Вычисление начального индекса для подсписка последних 8640 свечек
             int startIndex = Math.max(candles.size() - candleCount, 0);
-            // Создание подсписка последних 2880 свечек
+            // Создание подсписка последних 8640 свечек
             List<Candle> recentCandles = candles.subList(startIndex, candles.size());
 
             // Генетический тест
             GeneticAlgorithmStrategyTester tester = new GeneticAlgorithmStrategyTester(recentCandles, strategyTestingService, coin);
             StrategyParams bestGeneticParams = tester.run();
 
+            //Тут надо добавить добавление результатов в БД
             StrategyStats geneticStats = strategyTestingService.testStrategy(coin, bestGeneticParams, recentCandles);
-
-            // Прямой перебор параметров
-            //StrategyParams bestBruteForceParams = performBruteForceTesting(coin, recentCandles);
-            //StrategyStats bestBruteForceStats = strategyTestingService.testStrategy(coin, bestBruteForceParams, recentCandles);
 
             // Формирование результата
             String result = String.format("Лучшие параметры стратегии (генетический алгоритм):\nCCI: %d\nEMA: %d\nLEVERAGE: %d\nRATIO: %.2f\nMAX_ORDERS: %d\n" +
@@ -79,59 +76,6 @@ public class StrategyCalcController {
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Монета с указанным ID не найдена.");
         }
-    }
-
-    private StrategyParams performBruteForceTesting(Coin coin, List<Candle> recentCandles) throws InterruptedException {
-        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        List<Callable<StrategyParams>> tasks = new ArrayList<>();
-
-        for (int cci = 1; cci <= 300; cci += 10) {
-            for (int ema = 1; ema <= 300; ema += 10) {
-                for (double ratio = 0.5; ratio <= 4.0; ratio += 0.5) {
-                    for (int maxOrders = 1; maxOrders <= 10; maxOrders++) {
-                        int minLeverage = (int) Math.ceil(coin.getMinTradingQty() * recentCandles.get(0).getClose() / (10.0 / maxOrders));
-                        for (int leverage = minLeverage; leverage <= 25; leverage++) {
-                            final int fcci = cci;
-                            final int fema = ema;
-                            final double fratio = ratio;
-                            final int fmaxOrders = maxOrders;
-                            final int fleverage = leverage;
-                            tasks.add(() -> {
-                                StrategyParams params = new StrategyParams(coin.getCoinName(), coin.getTimeframe(), fleverage, fmaxOrders, fcci, fema, fratio);
-                                StrategyStats stats = strategyTestingService.testStrategy(coin, params, recentCandles);
-                                if(stats.getProfitInDollars() > 0 ){
-                                    System.out.printf("Текущие параметры: CCI: %d, EMA: %d, LEVERAGE: %d, RATIO: %.2f, MAX_ORDERS: %d%n, Профит: %.2f",
-                                            fcci, fema, fleverage, fratio, fmaxOrders,stats.getProfitInDollars());
-                                }
-                                return params;
-                            });
-                        }
-                    }
-                }
-            }
-        }
-
-        List<Future<StrategyParams>> results = executor.invokeAll(tasks);
-        executor.shutdown();
-
-        StrategyParams bestParams = null;
-        double bestProfit = Double.NEGATIVE_INFINITY;
-
-        for (Future<StrategyParams> result : results) {
-            try {
-                StrategyParams params = result.get();
-                StrategyStats stats = strategyTestingService.testStrategy(coin, params, recentCandles);
-
-                if (stats.getProfitInDollars() > bestProfit) {
-                    bestProfit = stats.getProfitInDollars();
-                    bestParams = params;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        return bestParams;
     }
 
     @GetMapping("/api/strategy/test/{id}")
