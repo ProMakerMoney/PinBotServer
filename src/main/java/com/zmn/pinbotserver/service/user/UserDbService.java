@@ -53,13 +53,13 @@ public class UserDbService implements UserService {
 
     @Override
     public Optional<User> register(String email, String username, String password) {
-        if (userStorage.getAll().stream().anyMatch(user -> user.getEmail().equals(email) || user.getLogin().equals(username))) {
+        if (userStorage.getAll().stream().anyMatch(user -> user.getEmail().equals(email) || user.getUsername().equals(username))) {
             return Optional.empty();
         }
 
         User user = new User();
         user.setEmail(email);
-        user.setLogin(username);
+        user.setUsername(username);
         user.setPasswordHash(passwordEncoder.encode(password));
         userStorage.add(user);
         return Optional.of(user);

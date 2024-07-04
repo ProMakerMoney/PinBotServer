@@ -3,8 +3,11 @@ package com.zmn.pinbotserver.model.strategy;
 import com.zmn.pinbotserver.model.candle.Candle;
 import com.zmn.pinbotserver.model.order.Order;
 import com.zmn.pinbotserver.model.order.Position;
-import jakarta.persistence.*;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import lombok.Getter;
+
 
 import java.util.List;
 

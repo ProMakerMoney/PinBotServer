@@ -1,8 +1,11 @@
 package com.zmn.pinbotserver.model.coin;
 
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
+
 
 @Entity
 @Table(name = "coins")
