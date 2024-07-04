@@ -2,13 +2,15 @@ package com.zmn.pinbotserver.model.user;
 
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users") // Новое имя таблиц
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "users") // Новое имя таблицы
 public class User {
 
     // Геттеры и сеттеры
@@ -34,9 +36,6 @@ public class User {
     @Getter
     private LocalDateTime updatedAt;
     private boolean isActive;
-
-    // Конструктор по умолчанию
-    public User() {}
 
     // Конструктор с параметрами
     public User(String username, String passwordHash, String email, LocalDateTime createdAt, LocalDateTime updatedAt, boolean isActive) {

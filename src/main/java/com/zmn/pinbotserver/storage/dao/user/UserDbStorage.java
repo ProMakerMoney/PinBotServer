@@ -16,13 +16,13 @@ import java.util.Optional;
 @Repository
 @RequiredArgsConstructor
 public class UserDbStorage implements UserStorage {
-    private final String url = "jdbc:h2:mem:testdb"; // Путь к базе данных
+    private final String url = "jdbc:h2:file:./data/testdb"; // Путь к базе данных
     private final String dbUser = "sa"; // Имя пользователя для базы данных
     private final String password = ""; // Пароль для базы данных
 
     @Override
     public User add(User element) {
-        String sql = "INSERT INTO \"USERS\" (email, username, password_hash, created_at, updated_at, is_active) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, TRUE)";
+        String sql = "INSERT INTO users (email, username, password_hash, created_at, updated_at, is_active) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, TRUE)";
 
         try (Connection connection = DriverManager.getConnection(url, dbUser, password);
              PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -46,7 +46,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User update(User element) {
-        String sql = "UPDATE \"USERS\" SET email = ?, username = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP, is_active = ? WHERE id = ?";
+        String sql = "UPDATE users SET email = ?, username = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP, is_active = ? WHERE id = ?";
 
         try (Connection connection = DriverManager.getConnection(url, dbUser, password);
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -67,7 +67,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User get(long elementID) {
-        String sql = "SELECT * FROM \"USERS\" WHERE id = ?";
+        String sql = "SELECT * FROM users WHERE id = ?";
 
         try (Connection connection = DriverManager.getConnection(url, dbUser, password);
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -89,7 +89,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public Collection<User> getAll() {
-        String sql = "SELECT * FROM \"USERS\"";
+        String sql = "SELECT * FROM users";
 
         try (Connection connection = DriverManager.getConnection(url, dbUser, password);
              PreparedStatement statement = connection.prepareStatement(sql);
@@ -108,7 +108,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public boolean contains(long elementID) {
-        String sql = "SELECT 1 FROM \"USERS\" WHERE id = ?";
+        String sql = "SELECT 1 FROM users WHERE id = ?";
 
         try (Connection connection = DriverManager.getConnection(url, dbUser, password);
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -126,7 +126,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public Optional<User> findByUsername(String username) {
-        String sql = "SELECT * FROM \"USERS\" WHERE username = ?";
+        String sql = "SELECT * FROM users WHERE username = ?";
 
         try (Connection connection = DriverManager.getConnection(url, dbUser, password);
              PreparedStatement statement = connection.prepareStatement(sql)) {
