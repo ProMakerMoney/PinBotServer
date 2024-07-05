@@ -33,7 +33,7 @@ public class UserController {
     private PasswordEncoder passwordEncoder;
 
     @PostMapping("/authenticate")
-    public JwtResponse createAuthenticationToken(@RequestBody JwtRequest authenticationRequest) throws Exception {
+    public JwtResponse ul(@RequestBody JwtRequest authenticationRequest) throws Exception {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(authenticationRequest.getUsername(), authenticationRequest.getPassword())
         );
