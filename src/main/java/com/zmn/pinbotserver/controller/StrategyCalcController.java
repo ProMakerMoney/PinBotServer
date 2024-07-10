@@ -5,10 +5,12 @@ import com.zmn.pinbotserver.model.coin.Coin;
 import com.zmn.pinbotserver.model.order.Order;
 import com.zmn.pinbotserver.model.order.Position;
 import com.zmn.pinbotserver.model.strategy.StrategyParams;
+import com.zmn.pinbotserver.model.strategy.StrategyParamsATR;
 import com.zmn.pinbotserver.model.strategy.StrategyStats;
 import com.zmn.pinbotserver.storage.CoinRepository;
 import com.zmn.pinbotserver.service.getData.DataFillerService;
 import com.zmn.pinbotserver.service.strategyTesting.StrategyTestingService;
+import com.zmn.pinbotserver.strategyTesting.GenATR;
 import com.zmn.pinbotserver.strategyTesting.GeneticAlgorithmStrategyTester;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -70,6 +72,41 @@ public class StrategyCalcController {
             String result = String.format("Лучшие параметры стратегии (генетический алгоритм):\nCCI: %d\nEMA: %d\nLEVERAGE: %d\nRATIO: %.2f\nMAX_ORDERS: %d\n" +
                             "Результаты стратегии (генетический алгоритм):\nОбщая прибыль: %.2f\nКоличество сделок: %d\nПроцент прибыльных сделок: %.2f%%\nМаксимальная просадка: %.2f\nДата тестирования: %d\n\n",
                     bestGeneticParams.getCCI(), bestGeneticParams.getEMA(), bestGeneticParams.getLEVERAGE(), bestGeneticParams.getRATIO(), bestGeneticParams.getMaxOpenOrder(),
+                    geneticStats.getProfitInDollars(), geneticStats.getTradeCount(), geneticStats.getProfitableTradePercentage(), geneticStats.getMaxDrawdown(), geneticStats.getTestDate());
+
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Монета с указанным ID не найдена.");
+        }
+    }
+
+    @GetMapping("/api/strategy/calcATR/{id}")
+    public ResponseEntity<String> calculateStrategyATR(@PathVariable Long id) throws IOException, InterruptedException {
+        Optional<Coin> coinOptional = coinRepository.findById(id);
+
+        if (coinOptional.isPresent()) {
+            Coin coin = coinOptional.get();
+            String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
+            Path filePath = Paths.get("C:\\Users\\PinBot\\IdeaProjects\\PinBotServer\\historical_data", fileName);
+            List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
+            // Определение количества свечек для обработки
+            int candleCount = 25920; // 3 (три) месяца
+            // Вычисление начального индекса для подсписка последних 8640 свечек
+            int startIndex = Math.max(candles.size() - candleCount, 0);
+            // Создание подсписка последних 8640 свечек
+            List<Candle> recentCandles = candles.subList(startIndex, candles.size());
+
+            // Генетический тест
+            GenATR tester = new GenATR(recentCandles, strategyTestingService, coin);
+            StrategyParamsATR bestGeneticParams = tester.run();
+
+            //Тут надо добавить добавление результатов в БД
+            StrategyStats geneticStats = strategyTestingService.testStrategyATR(coin, bestGeneticParams, recentCandles);
+
+            // Формирование результата
+            String result = String.format("Лучшие параметры стратегии (генетический алгоритм):\nCCI: %d\nEMA: %d\nLEVERAGE: %d\nRATIO: %.2f\nMAX_ORDERS: %d\nATR_Length: %d\nCoeff: %.2f" +
+                            "Результаты стратегии (генетический алгоритм):\nОбщая прибыль: %.2f\nКоличество сделок: %d\nПроцент прибыльных сделок: %.2f%%\nМаксимальная просадка: %.2f\nДата тестирования: %d\n\n",
+                    bestGeneticParams.getCCI(), bestGeneticParams.getEMA(), bestGeneticParams.getLEVERAGE(), bestGeneticParams.getRATIO(), bestGeneticParams.getMaxOpenOrder(), bestGeneticParams.getATR_Length(), bestGeneticParams.getCoeff(),
                     geneticStats.getProfitInDollars(), geneticStats.getTradeCount(), geneticStats.getProfitableTradePercentage(), geneticStats.getMaxDrawdown(), geneticStats.getTestDate());
 
             return ResponseEntity.ok(result);

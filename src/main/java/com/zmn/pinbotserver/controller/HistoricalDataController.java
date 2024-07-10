@@ -34,9 +34,9 @@ public class HistoricalDataController {
      * @param name имя монеты
      * @return ResponseEntity с сообщением об успешном выполнении или ошибке
      */
-    @GetMapping("/getHistoricalData/{name}")
-    public ResponseEntity<String> getHistoricalData(@PathVariable String name) {
-        Optional<Coin> coinOptional = coinRepository.findByCoinName(name);
+    @GetMapping("/getHistoricalData/{id}")
+    public ResponseEntity<String> getHistoricalData(@PathVariable Long id) {
+        Optional<Coin> coinOptional = coinRepository.findById(id);
 
         if (coinOptional.isPresent()) {
             Coin coin = coinOptional.get();
