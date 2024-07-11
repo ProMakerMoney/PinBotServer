@@ -1,4 +1,4 @@
-package com.zmn.pinbotserver.strategyTesting;
+package com.zmn.pinbotserver.bybit;
 
 import com.zmn.pinbotserver.model.candle.Candle;
 import com.zmn.pinbotserver.model.order.Order;
@@ -11,7 +11,10 @@ import lombok.Getter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class StrategyATR {
+/**
+ * Класс StrategyPlusBybit реализует торговую стратегию с использованием индикаторов CCI и EMA, а также метода AlphaTrend.
+ */
+public class StrategyPlusBybit {
 
     boolean strategyAllowed = true; // Флаг, разрешающий или запрещающий работу стратегии
 
@@ -33,26 +36,25 @@ public class StrategyATR {
 
     private final List<Double> emaValues = new ArrayList<>(); // Список значений EMA
 
-    String tradingPair;
+    String tradingPair; // Торговая пара
 
     @Getter
-    List<Order> orderHistory = new ArrayList<>();
+    List<Order> orderHistory = new ArrayList<>(); // История ордеров
 
     @Getter
-    List<Position> positionHistory = new ArrayList<>();
+    List<Position> positionHistory = new ArrayList<>(); // История позиций
 
-    double initialDeposit;
-    double risk;
+    double initialDeposit; // Начальный депозит
+    double risk; // Риск на сделку
 
-    double currentDeposit;
+    double currentDeposit; // Текущий депозит
 
-    double marginPerOrder;
-    double marginQTY;
-    double minTradingQty;
+    double marginPerOrder; // Маржа на сделку
+    double marginQTY; // Количество монет на сделку
+    double minTradingQty; // Минимальное количество монет для торговли
 
-
-    int ATR_length;
-    double coeff; // множитель
+    int ATR_length; // Период для расчета ATR
+    double coeff; // Множитель для AlphaTrend
 
     // Поля для AlphaTrend
     double alphaTrend = 0.0;
@@ -60,10 +62,15 @@ public class StrategyATR {
     boolean alphaTrendBuy = false;
     boolean alphaTrendSell = false;
 
-    TYPE direction;
-
-    // Конструктор стратегии
-    public StrategyATR(StrategyParamsATR strategyParams, double initialDeposit, double minTradingQty, double risk) {
+    /**
+     * Конструктор стратегии
+     *
+     * @param strategyParams   параметры стратегии
+     * @param initialDeposit   начальный депозит
+     * @param minTradingQty    минимальное количество монет для торговли
+     * @param risk             риск на сделку
+     */
+    public StrategyPlusBybit(StrategyParamsATR strategyParams, double initialDeposit, double minTradingQty, double risk) {
         this.tradingPair = strategyParams.getCoinName();
         this.LEVERAGE = strategyParams.getLEVERAGE();
         this.CCI_PERIOD = strategyParams.getCCI();
@@ -89,10 +96,6 @@ public class StrategyATR {
         // Округляем marginQTY в меньшую сторону до одного знака после запятой
         this.marginQTY = Math.floor(this.marginQTY * 10) / 10.0;
 
-//        if(marginQTY < minTradingQty){
-//            this.marginQTY = minTradingQty;
-//        }
-
         // Проверяем, если marginQTY меньше minTradingQty не более чем на 10%
         if (this.marginQTY < this.minTradingQty) {
             if (this.marginQTY >= this.minTradingQty * 0.9) {
@@ -115,7 +118,7 @@ public class StrategyATR {
      * @param period     период для AlphaTrend
      * @return сигнал AlphaTrend ("BUY", "SELL" или "HOLD")
      */
-    public void calcAlphaTrend(double closePrice, double low, double high, double atr, double coeff, int period) {
+    public String calcAlphaTrend(double closePrice, double low, double high, double atr, double coeff, int period) {
         double upT = low - atr * coeff;
         double downT = high + atr * coeff;
 
@@ -128,9 +131,11 @@ public class StrategyATR {
         alphaTrendSell = taCrossunder(alphaTrend, prevAlphaTrend);
 
         if (alphaTrendBuy) {
-            direction = TYPE.LONG;
+            return "BUY";
         } else if (alphaTrendSell) {
-            direction = TYPE.SHORT;
+            return "SELL";
+        } else {
+            return "HOLD";
         }
     }
 
@@ -233,10 +238,9 @@ public class StrategyATR {
         return atr / ATR_length;
     }
 
-
-
     /**
-     * Метод для расчета EMA
+     * Метод для расчета EMA.
+     *
      * @param newValue новое значение для включения в расчет
      * @param period период EMA
      * @return рассчитанное значение EMA
@@ -257,7 +261,8 @@ public class StrategyATR {
     }
 
     /**
-     * Метод для расчета CCI (Commodity Channel Index)
+     * Метод для расчета CCI (Commodity Channel Index).
+     *
      * @return рассчитанное значение CCI
      */
     public double calculateCCI() {
@@ -286,7 +291,8 @@ public class StrategyATR {
     }
 
     /**
-     * Метод, вызываемый при обновлении цены
+     * Метод, вызываемый при обновлении цены.
+     *
      * @param candle новая свеча
      */
     public void onPriceUpdate(Candle candle) {
@@ -309,15 +315,15 @@ public class StrategyATR {
         }
 
         double atr = calculateATR(candleHistory, ATR_length);
-        calcAlphaTrend(candle.getClose(), candle.getLow(), candle.getHigh(), atr, coeff, ATR_length);
+        String alphaTrendSignal = calcAlphaTrend(candle.getClose(), candle.getLow(), candle.getHigh(), atr, coeff, ATR_length);
 
         // Рассчитываем новые значения CCI и EMA
         double newCCI = calculateCCI();
         double newEMA = calculateEMA(newCCI, EMA_PERIOD);
 
         // Обрабатываем ордера на основе новых значений
-        if(strategyAllowed) {
-            manageOrders(newCCI, newEMA, candle);
+        if (strategyAllowed) {
+            manageOrders(newCCI, newEMA, candle, alphaTrendSignal);
         }
     }
 
@@ -339,11 +345,14 @@ public class StrategyATR {
     Position position;
 
     /**
-     * Метод для управления ордерами
+     * Метод для управления ордерами.
+     *
      * @param cci текущее значение CCI
      * @param ema текущее значение EMA
+     * @param candle текущая свеча
+     * @param alphaTrendSignal сигнал AlphaTrend ("BUY", "SELL" или "HOLD")
      */
-    private void manageOrders(double cci, double ema, Candle candle) {
+    private void manageOrders(double cci, double ema, Candle candle, String alphaTrendSignal) {
         double liquidationLevelPer = 100.0 / LEVERAGE; // Уровень ликвидации в процентах
 
         // Ликвидация LONG ордеров, если цена достигает уровня ликвидации
@@ -357,12 +366,12 @@ public class StrategyATR {
         }
 
         // Проверка условий для открытия первой LONG позиции
-        if (direction == TYPE.LONG && cci < lowerBound && !longIsOpen && !longIsReadyAVG && openOrders == 0 && !longIsReady) {
+        if (alphaTrendSignal.equals("BUY") && cci < lowerBound && !longIsOpen && !longIsReadyAVG && openOrders == 0 && !longIsReady) {
             longIsReady = true; // Устанавливаем флаг готовности для открытия первого LONG
         }
 
         // Открытие первого LONG ордера при выполнении условий
-        if (direction == TYPE.LONG && longIsReady && cci > ema && !longIsReadyAVG && !longIsOpen && cci <= upperBound && !shortIsOpen && !shortIsReadyAVG) {
+        if (alphaTrendSignal.equals("BUY") && longIsReady && cci > ema && !longIsReadyAVG && !longIsOpen && cci <= upperBound && !shortIsOpen && !shortIsReadyAVG) {
             openLongPosition(candle);
         }
 
@@ -372,27 +381,27 @@ public class StrategyATR {
         }
 
         // Проверка условий для усреднения LONG позиции
-        if (direction == TYPE.LONG && longIsOpen && openOrders <= MAXOrders && cciLongRollback && cci < lowerBound) {
+        if (alphaTrendSignal.equals("BUY") && longIsOpen && openOrders <= MAXOrders && cciLongRollback && cci < lowerBound) {
             longIsReadyAVG = true; // Устанавливаем флаг готовности для усреднения LONG
         }
 
         // Открытие усредняющего LONG ордера при выполнении условий
-        if (direction == TYPE.LONG && longIsReadyAVG && cci > ema && currentPrice < last_long_price && longIsOpen && !shortIsOpen && !shortIsReadyAVG) {
+        if (alphaTrendSignal.equals("BUY") && longIsReadyAVG && cci > ema && currentPrice < last_long_price && longIsOpen && !shortIsOpen && !shortIsReadyAVG) {
             averageLongPosition(candle);
         }
 
         // Закрытие всех LONG ордеров при достижении верхней границы CCI
-        if (direction == TYPE.SHORT && longIsOpen && !shortIsOpen && openOrders > 0 ) { //&& cci > upperBound
+        if (longIsOpen && !shortIsOpen && openOrders > 0 && cci > upperBound) {
             closeLongPosition(candle);
         }
 
         // Проверка условий для открытия первой SHORT позиции
-        if (direction == TYPE.SHORT && cci > upperBound && !shortIsOpen && !shortIsReadyAVG && openOrders == 0 && !shortIsReady) {
+        if (alphaTrendSignal.equals("SELL") && cci > upperBound && !shortIsOpen && !shortIsReadyAVG && openOrders == 0 && !shortIsReady) {
             shortIsReady = true; // Устанавливаем флаг готовности для открытия первого SHORT
         }
 
         // Открытие первого SHORT ордера при выполнении условий
-        if (direction == TYPE.SHORT && shortIsReady && cci < ema && !shortIsReadyAVG && !shortIsOpen && cci >= lowerBound && !longIsOpen && !longIsReadyAVG) {
+        if (alphaTrendSignal.equals("SELL") && shortIsReady && cci < ema && !shortIsReadyAVG && !shortIsOpen && cci >= lowerBound && !longIsOpen && !longIsReadyAVG) {
             openShortPosition(candle);
         }
 
@@ -402,23 +411,25 @@ public class StrategyATR {
         }
 
         // Проверка условий для усреднения SHORT позиции
-        if (direction == TYPE.SHORT && shortIsOpen && openOrders <= MAXOrders && cciShortRollback && cci > upperBound) {
+        if (alphaTrendSignal.equals("SELL") && shortIsOpen && openOrders <= MAXOrders && cciShortRollback && cci > upperBound) {
             shortIsReadyAVG = true; // Устанавливаем флаг готовности для усреднения SHORT
         }
 
         // Открытие усредняющего SHORT ордера при выполнении условий
-        if (direction == TYPE.SHORT && shortIsReadyAVG && cci < ema && currentPrice > last_short_price && !longIsOpen && shortIsOpen) {
+        if (alphaTrendSignal.equals("SELL") && shortIsReadyAVG && cci < ema && currentPrice > last_short_price && !longIsOpen && shortIsOpen) {
             averageShortPosition(candle);
         }
 
         // Закрытие всех SHORT ордеров при достижении нижней границы CCI
-        if (direction == TYPE.LONG && !longIsOpen && shortIsOpen && openOrders > 0 ) { //&& cci < lowerBound
+        if (!longIsOpen && shortIsOpen && openOrders > 0 && cci < lowerBound) {
             closeShortPosition(candle);
         }
     }
 
     /**
-     * Метод для открытия LONG позиции
+     * Метод для открытия LONG позиции.
+     *
+     * @param candle текущая свеча
      */
     private void openLongPosition(Candle candle) {
         // Пересчет маржи для следующего пула сделок
@@ -439,7 +450,9 @@ public class StrategyATR {
     }
 
     /**
-     * Метод для усреднения LONG позиции
+     * Метод для усреднения LONG позиции.
+     *
+     * @param candle текущая свеча
      */
     private void averageLongPosition(Candle candle) {
         if (currentDeposit < marginPerOrder) {
@@ -457,7 +470,9 @@ public class StrategyATR {
     }
 
     /**
-     * Метод для закрытия всех LONG позиций
+     * Метод для закрытия всех LONG позиций.
+     *
+     * @param candle текущая свеча
      */
     private void closeLongPosition(Candle candle) {
         // Закрытие позиции
@@ -479,14 +494,15 @@ public class StrategyATR {
     }
 
     /**
-     * Метод для открытия SHORT позиции
+     * Метод для открытия SHORT позиции.
+     *
+     * @param candle текущая свеча
      */
     private void openShortPosition(Candle candle) {
-
         // Пересчет маржи для следующего пула сделок
         calculateInitialMarginPerOrder();
 
-        if (currentDeposit < marginPerOrder  * MAXOrders) {
+        if (currentDeposit < marginPerOrder * MAXOrders) {
             return;
         }
 
@@ -502,7 +518,9 @@ public class StrategyATR {
     }
 
     /**
-     * Метод для усреднения SHORT позиции
+     * Метод для усреднения SHORT позиции.
+     *
+     * @param candle текущая свеча
      */
     private void averageShortPosition(Candle candle) {
         if (currentDeposit < marginPerOrder) {
@@ -520,7 +538,9 @@ public class StrategyATR {
     }
 
     /**
-     * Метод для закрытия всех SHORT позиций
+     * Метод для закрытия всех SHORT позиций.
+     *
+     * @param candle текущая свеча
      */
     private void closeShortPosition(Candle candle) {
         // Закрытие позиции
@@ -538,6 +558,5 @@ public class StrategyATR {
         shortIsReadyAVG = false;
         openOrders = 0;
         positionHistory.add(position);
-
     }
 }

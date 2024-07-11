@@ -2,7 +2,7 @@ package com.zmn.pinbotserver.strategyTesting;
 
 import com.zmn.pinbotserver.model.candle.Candle;
 import com.zmn.pinbotserver.model.coin.Coin;
-import com.zmn.pinbotserver.model.strategy.StrategyParamsATR;
+import com.zmn.pinbotserver.model.strategy.StrategyParamsClearATR;
 import com.zmn.pinbotserver.model.strategy.StrategyStats;
 import com.zmn.pinbotserver.service.strategyTesting.StrategyTestingService;
 
@@ -10,24 +10,24 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 
-public class GenATR {
+public class GenClearATR {
 
     private final List<Candle> candles;
     private final StrategyTestingService strategyTestingService;
     private final Coin coin;
 
-    static final int POPULATION_SIZE = 1000;
-    static final int GENERATIONS = 50;
+    static final int POPULATION_SIZE = 300;
+    static final int GENERATIONS = 100;
     static double MUTATION_RATE = 0.5;
     static final double CROSSOVER_RATE = 0.9;
 
-    public GenATR(List<Candle> candles, StrategyTestingService strategyTestingService, Coin coin) {
+    public GenClearATR(List<Candle> candles, StrategyTestingService strategyTestingService, Coin coin) {
         this.candles = candles;
         this.strategyTestingService = strategyTestingService;
         this.coin = coin;
     }
 
-    public StrategyParamsATR run() throws InterruptedException {
+    public StrategyParamsClearATR run() throws InterruptedException {
         System.out.println("Начало - " + candles.get(0).getTimeAsLocalDateTime());
         System.out.println("Конец - " + candles.get(candles.size() - 1).getTimeAsLocalDateTime());
 
@@ -52,8 +52,8 @@ public class GenATR {
 
             population = newPopulation;
             Individual bestIndividual = getBestIndividual(population);
-            System.out.printf("Поколение %d: лучшая пригодность = %.2f, параметры: CCI=%d, EMA=%d, LEV=%d, RATIO=%.2f, MAX_ORDERS=%d, ATR_Length=%d, Coeff=%.2f%n",
-                    generation, bestIndividual.fitness, bestIndividual.cci, bestIndividual.ema, bestIndividual.leverage, bestIndividual.ratio, bestIndividual.maxOrders, bestIndividual.atrLength, bestIndividual.coeff);
+            System.out.printf("Поколение %d: лучшая пригодность = %.2f, LEV=%d, ATR_Length=%d, Coeff=%.2f%n",
+                    generation, bestIndividual.fitness,  bestIndividual.leverage,bestIndividual.atrLength, bestIndividual.coeff);
 
             if (generation % 50 == 0 && generation != 0) {
                 MUTATION_RATE = Math.max(0.01, MUTATION_RATE - 0.01);
@@ -63,26 +63,18 @@ public class GenATR {
         executor.shutdown();
         Individual best = getBestIndividual(population);
         System.out.println("Лучшее решение:");
-        System.out.println("CCI: " + best.cci);
-        System.out.println("EMA: " + best.ema);
         System.out.println("LEV: " + best.leverage);
-        System.out.println("RATIO: " + best.ratio);
-        System.out.println("MAX_ORDERS: " + best.maxOrders);
         System.out.println("ATR_LENGTH: " + best.atrLength);
         System.out.println("Coeff: " + best.coeff);
         System.out.println("Общая прибыль: " + best.totalProfit);
         System.out.println("Количество сделок: " + best.totalTrades);
         System.out.println("Процент прибыльных сделок: " + best.percentageProfitTrades);
 
-        return new StrategyParamsATR(coin.getCoinName(), coin.getTimeframe(), best.leverage, best.maxOrders, best.cci, best.ema, best.ratio, best.atrLength, best.coeff);
+        return new StrategyParamsClearATR(coin.getCoinName(), coin.getTimeframe(), best.leverage, best.atrLength, best.coeff);
     }
 
     class Individual {
-        int cci;
-        int ema;
         int leverage;
-        double ratio;
-        int maxOrders;
         int atrLength;
         double coeff;
         double fitness;
@@ -90,12 +82,8 @@ public class GenATR {
         int totalTrades;
         double totalProfit;
 
-        public Individual(int cci, int ema, int leverage, double ratio, int maxOrders, int atrLength, double coeff) {
-            this.cci = cci;
-            this.ema = ema;
+        public Individual(int leverage, int atrLength, double coeff) {
             this.leverage = leverage;
-            this.ratio = ratio;
-            this.maxOrders = maxOrders;
             this.atrLength = atrLength;
             this.coeff = coeff;
         }
@@ -114,13 +102,9 @@ public class GenATR {
         List<Individual> population = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             population.add(new Individual(
-                    ThreadLocalRandom.current().nextInt(1, 301),
-                    ThreadLocalRandom.current().nextInt(1, 301),
                     ThreadLocalRandom.current().nextInt(1, 16),
-                    ThreadLocalRandom.current().nextDouble(0.7, 4.1),
-                    ThreadLocalRandom.current().nextInt(1, 11),
                     ThreadLocalRandom.current().nextInt(1, 200),
-                    ThreadLocalRandom.current().nextDouble(0.1, 10.0)
+                    ThreadLocalRandom.current().nextDouble(0.1, 50.0)
             ));
         }
         return population;
@@ -132,18 +116,14 @@ public class GenATR {
         for (Individual individual : population) {
             Future<?> future = executor.submit(() -> {
                 try {
-                    StrategyParamsATR params = new StrategyParamsATR(
+                    StrategyParamsClearATR params = new StrategyParamsClearATR(
                             coin.getCoinName(),
                             coin.getTimeframe(),
                             individual.leverage,
-                            individual.maxOrders,
-                            individual.cci,
-                            individual.ema,
-                            individual.ratio,
                             individual.atrLength,
                             individual.coeff
                     );
-                    StrategyStats stats = strategyTestingService.testStrategyATR(coin, params, candles);
+                    StrategyStats stats = strategyTestingService.testClearATR(coin, params, candles);
 
                     individual.totalProfit = stats.getProfitInDollars();
                     individual.totalTrades = stats.getTradeCount();
@@ -181,21 +161,14 @@ public class GenATR {
             return Arrays.asList(parent1, parent2);
         }
 
-        int cci = ThreadLocalRandom.current().nextBoolean() ? parent1.cci : parent2.cci;
-        int ema = ThreadLocalRandom.current().nextBoolean() ? parent1.ema : parent2.ema;
+
         int leverage = ThreadLocalRandom.current().nextBoolean() ? parent1.leverage : parent2.leverage;
-        double ratio = ThreadLocalRandom.current().nextBoolean() ? parent1.ratio : parent2.ratio;
-        int maxOrders = ThreadLocalRandom.current().nextBoolean() ? parent1.maxOrders : parent2.maxOrders;
         int atrLength = ThreadLocalRandom.current().nextBoolean() ? parent1.atrLength : parent2.atrLength;
         double coeff = ThreadLocalRandom.current().nextBoolean() ? parent1.coeff : parent2.coeff;
 
         return Arrays.asList(
-                new Individual(cci, ema, leverage, ratio, maxOrders, atrLength, coeff),
-                new Individual(parent1.cci == cci ? parent2.cci : parent1.cci,
-                        parent1.ema == ema ? parent2.ema : parent1.ema,
-                        parent1.leverage == leverage ? parent2.leverage : parent1.leverage,
-                        parent1.ratio == ratio ? parent2.ratio : parent1.ratio,
-                        parent1.maxOrders == maxOrders ? parent2.maxOrders : parent1.maxOrders,
+                new Individual(leverage, atrLength, coeff),
+                new Individual(parent1.leverage == leverage ? parent2.leverage : parent1.leverage,
                         parent1.atrLength == atrLength ? parent2.atrLength : parent1.atrLength,
                         parent1.coeff == coeff ? parent2.coeff : parent1.coeff)
         );
@@ -206,43 +179,23 @@ public class GenATR {
             return individual;
         }
 
-        int cci = individual.cci;
-        if (ThreadLocalRandom.current().nextDouble() < MUTATION_RATE) {
-            cci = ThreadLocalRandom.current().nextInt(1, 301);
-        }
-
-        int ema = individual.ema;
-        if (ThreadLocalRandom.current().nextDouble() < MUTATION_RATE) {
-            ema = ThreadLocalRandom.current().nextInt(1, 301);
-        }
-
         int leverage = individual.leverage;
         if (ThreadLocalRandom.current().nextDouble() < MUTATION_RATE) {
             leverage = ThreadLocalRandom.current().nextInt(1, 16);
         }
 
-        double ratio = individual.ratio;
-        if (ThreadLocalRandom.current().nextDouble() < MUTATION_RATE) {
-            ratio = ThreadLocalRandom.current().nextDouble(0.7, 4.1);
-        }
-
-
-        int maxOrders = individual.maxOrders;
-        if (ThreadLocalRandom.current().nextDouble() < MUTATION_RATE) {
-            maxOrders = ThreadLocalRandom.current().nextInt(1, 11);
-        }
 
         int atrLength = individual.atrLength;
         if (ThreadLocalRandom.current().nextDouble() < MUTATION_RATE) {
-            maxOrders = ThreadLocalRandom.current().nextInt(1, 200);
+            atrLength = ThreadLocalRandom.current().nextInt(1, 200);
         }
 
         double coeff = individual.coeff;
         if (ThreadLocalRandom.current().nextDouble() < MUTATION_RATE) {
-            ratio = ThreadLocalRandom.current().nextDouble(0.1, 10.0);
+            coeff = ThreadLocalRandom.current().nextDouble(0.1, 50.0);
         }
 
-        return new Individual(cci, ema, leverage, ratio, maxOrders, atrLength, coeff);
+        return new Individual(leverage, atrLength, coeff);
     }
 
     Individual getBestIndividual(List<Individual> population) {
