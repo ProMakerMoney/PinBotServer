@@ -1,7 +1,9 @@
 package com.zmn.pinbotserver.model.strategy;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor(force = true)
 public class StrategyParamsATR {
     @Getter
     private final String coinName;

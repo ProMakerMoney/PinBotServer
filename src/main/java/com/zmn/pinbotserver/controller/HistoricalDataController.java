@@ -31,7 +31,7 @@ public class HistoricalDataController {
 
     /**
      * Метод для получения исторических данных по монете
-     * @param name имя монеты
+     * @param id имя монеты
      * @return ResponseEntity с сообщением об успешном выполнении или ошибке
      */
     @GetMapping("/getHistoricalData/{id}")
