@@ -6,7 +6,6 @@ import com.zmn.pinbotserver.model.order.Position;
 import com.zmn.pinbotserver.model.order.STATUS;
 import com.zmn.pinbotserver.model.order.TYPE;
 import com.zmn.pinbotserver.model.strategy.StrategyParamsATR;
-import com.zmn.pinbotserver.strategyTesting.StrategyATR;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -64,7 +63,8 @@ public class StrategyATRBybit {
     TYPE direction;
 
     @Setter
-    String mode;
+    @Getter
+    String mode = "free"; // режим по умолчанию
 
     // Конструктор стратегии
     public StrategyATRBybit(StrategyParamsATR strategyParams, double initialDeposit, double minTradingQty, double risk) {
@@ -421,6 +421,10 @@ public class StrategyATRBybit {
      * Метод для открытия LONG позиции
      */
     private void openLongPosition(Candle candle) {
+        if ("stop".equals(mode) || "smooth_stop".equals(mode)) {
+            return; // Не открываем новые позиции в режимах "stop" и "smooth_stop"
+        }
+
         // Пересчет маржи для следующего пула сделок
         calculateInitialMarginPerOrder();
         if (currentDeposit < marginPerOrder * MAXOrders) {
@@ -482,6 +486,9 @@ public class StrategyATRBybit {
      * Метод для открытия SHORT позиции
      */
     private void openShortPosition(Candle candle) {
+        if ("stop".equals(mode) || "smooth_stop".equals(mode)) {
+            return; // Не открываем новые позиции в режимах "stop" и "smooth_stop"
+        }
 
         // Пересчет маржи для следующего пула сделок
         calculateInitialMarginPerOrder();
