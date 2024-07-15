@@ -24,7 +24,7 @@ public class TradeBotService {
         startScheduledTask();
     }
 
-    @Scheduled(cron = "0 0/15 * * * ?") // Запуск каждую 15-ю минуту часа
+    //@Scheduled(cron = "0 0/15 * * * ?") // Запуск каждую 15-ю минуту часа
     private void startScheduledTask() {
         // Получение данных с биржи
         Candle candle = getCandleFromExchange(currentParams.getCoinName(), currentParams.getTimeframe());

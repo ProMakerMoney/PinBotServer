@@ -105,8 +105,7 @@ public class GenATR {
         }
 
         public boolean isValid() {
-            return percentageProfitTrades > 60
-                    && totalTrades > 50 && totalProfit > 0;
+            return percentageProfitTrades > 0 && totalTrades > 50 && totalProfit > 0;
         }
     }
 
