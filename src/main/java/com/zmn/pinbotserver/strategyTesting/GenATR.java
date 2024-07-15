@@ -16,8 +16,8 @@ public class GenATR {
     private final StrategyTestingService strategyTestingService;
     private final Coin coin;
 
-    static final int POPULATION_SIZE = 1000;
-    static final int GENERATIONS = 50;
+    static final int POPULATION_SIZE = 5000;
+    static final int GENERATIONS = 100;
     static double MUTATION_RATE = 0.5;
     static final double CROSSOVER_RATE = 0.9;
 
@@ -105,8 +105,8 @@ public class GenATR {
         }
 
         public boolean isValid() {
-            return percentageProfitTrades > 0
-                    && totalTrades > 0 && totalProfit > 0;
+            return percentageProfitTrades > 60
+                    && totalTrades > 50 && totalProfit > 0;
         }
     }
 
