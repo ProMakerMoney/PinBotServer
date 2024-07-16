@@ -20,7 +20,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -75,6 +78,14 @@ public class StrategyCalcController {
         }
     }
 
+    /**
+     * Endpoint для расчета стратегии ATR.
+     *
+     * @param id ID монеты.
+     * @return ResponseEntity с результатами расчета.
+     * @throws IOException
+     * @throws InterruptedException
+     */
     @GetMapping("/api/strategy/calcATR/{id}")
     public ResponseEntity<String> calculateStrategyATR(@PathVariable Long id) throws IOException, InterruptedException {
         Optional<Coin> coinOptional = coinRepository.findById(id);
@@ -82,33 +93,70 @@ public class StrategyCalcController {
         if (coinOptional.isPresent()) {
             Coin coin = coinOptional.get();
             String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
-            Path filePath = Paths.get("C:\\Users\\PinBot\\IdeaProjects\\PinBotServer\\historical_data", fileName);
+            Path filePath = Paths.get("historical_data", fileName);
             List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
-            // Определение количества свечек для обработки
             int candleCount = 8640; // 3 (три) месяца
-            // Вычисление начального индекса для подсписка последних 8640 свечек
             int startIndex = Math.max(candles.size() - candleCount, 0);
-            // Создание подсписка последних 8640 свечек
             List<Candle> recentCandles = candles.subList(startIndex, candles.size());
 
-            // Генетический тест
             GenATR tester = new GenATR(recentCandles, strategyTestingService, coin);
             StrategyParamsATR bestGeneticParams = tester.run();
 
-            //Тут надо добавить добавление результатов в БД
             StrategyStats geneticStats = strategyTestingService.testStrategyATR(coin, bestGeneticParams, recentCandles);
 
-            // Формирование результата
-            String result = String.format("Лучшие параметры стратегии (генетический алгоритм):\nCCI: %d\nEMA: %d\nLEVERAGE: %d\nRATIO: %.2f\nMAX_ORDERS: %d\nATR_Length: %d\nCoeff: %.2f" +
-                            "Результаты стратегии (генетический алгоритм):\nОбщая прибыль: %.2f\nКоличество сделок: %d\nПроцент прибыльных сделок: %.2f%%\nМаксимальная просадка: %.2f\nДата тестирования: %d\n\n",
+            // Формируем строку результата в формате CSV
+            String result = String.format("%d;%d;%d;%.2f;%d;%d;%.2f;%.2f;%d;%.2f;%.2f;%d",
                     bestGeneticParams.getCCI(), bestGeneticParams.getEMA(), bestGeneticParams.getLEVERAGE(), bestGeneticParams.getRATIO(), bestGeneticParams.getMaxOpenOrder(), bestGeneticParams.getATR_Length(), bestGeneticParams.getCoeff(),
                     geneticStats.getProfitInDollars(), geneticStats.getTradeCount(), geneticStats.getProfitableTradePercentage(), geneticStats.getMaxDrawdown(), geneticStats.getTestDate());
+
+            writeResultsToCsv(coin.getCoinName(), coin.getTimeframe(), result);
 
             return ResponseEntity.ok(result);
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Монета с указанным ID не найдена.");
         }
     }
+
+    /**
+     * Метод для записи результатов в CSV файл.
+     *
+     * @param coinName  Имя торговой пары.
+     * @param timeframe Таймфрейм.
+     * @param result    Результаты для записи.
+     */
+    private void writeResultsToCsv(String coinName, String timeframe, String result) {
+        String fileName = coinName + "_" + timeframe + "_calc.csv";
+        Path directoryPath = Paths.get("calcATR");
+        Path filePath = directoryPath.resolve(fileName);
+
+        // Создание директории, если она не существует
+        try {
+            if (!Files.exists(directoryPath)) {
+                Files.createDirectories(directoryPath);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        boolean fileExists = Files.exists(filePath);
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath.toFile(), true))) {
+            // Записываем шапку, если файл не существует
+            if (!fileExists) {
+                writer.write("CCI;EMA;LEVERAGE;RATIO;MAX_ORDERS;ATR_Length;Coeff;Profit;Trade Count;Profitable Trade Percentage;Max Drawdown;Test Date");
+                writer.newLine();
+            }
+
+            // Записываем результаты на новой линии
+            writer.write(result);
+            writer.newLine();
+
+            System.out.println(String.format("Файл %s создан успешно.", fileName));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     @GetMapping("/api/strategy/test/{id}")
     public ResponseEntity<String> testStrategyWithParams(@PathVariable Long id,

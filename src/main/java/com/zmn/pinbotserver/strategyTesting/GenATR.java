@@ -5,6 +5,7 @@ import com.zmn.pinbotserver.model.coin.Coin;
 import com.zmn.pinbotserver.model.strategy.StrategyParamsATR;
 import com.zmn.pinbotserver.model.strategy.StrategyStats;
 import com.zmn.pinbotserver.service.strategyTesting.StrategyTestingService;
+import lombok.Getter;
 
 import java.io.IOException;
 import java.util.*;
@@ -16,7 +17,7 @@ public class GenATR {
     private final StrategyTestingService strategyTestingService;
     private final Coin coin;
 
-    static final int POPULATION_SIZE = 5000;
+    static final int POPULATION_SIZE = 10000;
     static final int GENERATIONS = 100;
     static double MUTATION_RATE = 0.5;
     static final double CROSSOVER_RATE = 0.9;
@@ -28,18 +29,17 @@ public class GenATR {
     }
 
     public StrategyParamsATR run() throws InterruptedException {
-        System.out.println("Начало - " + candles.get(0).getTimeAsLocalDateTime());
-        System.out.println("Конец - " + candles.get(candles.size() - 1).getTimeAsLocalDateTime());
+        System.out.println("Начало - " + candles.getFirst().getTimeAsLocalDateTime());
+        System.out.println("Конец - " + candles.getLast().getTimeAsLocalDateTime());
 
-        List<Individual> population = initializePopulation(POPULATION_SIZE);
+        List<Individual> population = initializePopulation();
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
         for (int generation = 0; generation < GENERATIONS; generation++) {
             evaluatePopulation(population, candles, executor);
 
-            List<Individual> newPopulation = new ArrayList<>();
             int eliteCount = (int) (POPULATION_SIZE * 0.05);
-            newPopulation.addAll(population.subList(0, eliteCount));
+            List<Individual> newPopulation = new ArrayList<>(population.subList(0, eliteCount));
 
             for (int i = eliteCount; i < POPULATION_SIZE; i += 2) {
                 Individual parent1 = selectParent(population);
@@ -77,7 +77,7 @@ public class GenATR {
         return new StrategyParamsATR(coin.getCoinName(), coin.getTimeframe(), best.leverage, best.maxOrders, best.cci, best.ema, best.ratio, best.atrLength, best.coeff);
     }
 
-    class Individual {
+    static class Individual {
         int cci;
         int ema;
         int leverage;
@@ -85,6 +85,7 @@ public class GenATR {
         int maxOrders;
         int atrLength;
         double coeff;
+        @Getter
         double fitness;
         double percentageProfitTrades;
         int totalTrades;
@@ -100,18 +101,14 @@ public class GenATR {
             this.coeff = coeff;
         }
 
-        public double getFitness() {
-            return fitness;
-        }
-
         public boolean isValid() {
             return percentageProfitTrades > 0 && totalTrades > 50 && totalProfit > 0;
         }
     }
 
-    List<Individual> initializePopulation(int size) {
+    List<Individual> initializePopulation() {
         List<Individual> population = new ArrayList<>();
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < GenATR.POPULATION_SIZE; i++) {
             population.add(new Individual(
                     ThreadLocalRandom.current().nextInt(1, 301),
                     ThreadLocalRandom.current().nextInt(1, 301),

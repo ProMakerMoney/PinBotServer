@@ -1,6 +1,7 @@
 package com.zmn.pinbotserver.controller;
 
 
+import com.zmn.pinbotserver.model.coin.Coin;
 import com.zmn.pinbotserver.model.jwt.JwtRequest;
 import com.zmn.pinbotserver.model.jwt.JwtResponse;
 import com.zmn.pinbotserver.model.user.User;
@@ -8,11 +9,15 @@ import com.zmn.pinbotserver.security.JwtUtil;
 import com.zmn.pinbotserver.service.user.UserDetailsServiceImpl;
 import com.zmn.pinbotserver.service.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Collection;
+import java.util.List;
 
 @RestController
 public class UserController {
@@ -49,5 +54,15 @@ public class UserController {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userService.add(user);
         return "User registered successfully";
+    }
+
+    @GetMapping("/users/getAll")
+    public ResponseEntity<?> getAllUsers() throws Exception {
+        Collection<User> users = userService.getAll();
+        if (users.isEmpty()) {
+            return ResponseEntity.status(404).body("Пользователи не найдены");
+        } else {
+            return ResponseEntity.ok(users);
+        }
     }
 }
