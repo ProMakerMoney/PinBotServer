@@ -430,7 +430,7 @@ public class StrategyATR {
     private boolean canCloseLongPosition(double cci) {
         double liquidationLevelPer = 100.0 / LEVERAGE; // Уровень ликвидации в процентах
         return (longIsOpen && (currentPrice <= last_long_price * (1 - liquidationLevelPer / 100)) ||
-                (direction == TYPE.SHORT && cci > upperBound && longIsOpen && openOrders > 0));
+                (cci > upperBound && longIsOpen && openOrders > 0));
     }
 
     /**
@@ -442,7 +442,7 @@ public class StrategyATR {
     private boolean canCloseShortPosition(double cci) {
         double liquidationLevelPer = 100.0 / LEVERAGE; // Уровень ликвидации в процентах
         return (shortIsOpen && (currentPrice >= last_short_price * (1 + liquidationLevelPer / 100)) ||
-                (direction == TYPE.LONG && cci < lowerBound && shortIsOpen && openOrders > 0));
+                (cci < lowerBound && shortIsOpen && openOrders > 0));
     }
 
     /**
