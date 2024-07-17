@@ -26,8 +26,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @RestController
 public class StrategyCalcController {
@@ -35,6 +37,9 @@ public class StrategyCalcController {
     private final CoinRepository coinRepository;
     private final StrategyTestingService strategyTestingService;
     private final DataFillerService dataFillerService;
+
+    private final AtomicBoolean stopCalculation = new AtomicBoolean(false); // Флаг для остановки расчета
+
 
     @Autowired
     public StrategyCalcController(CoinRepository coinRepository, StrategyTestingService strategyTestingService, DataFillerService dataFillerService) {
@@ -115,6 +120,62 @@ public class StrategyCalcController {
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Монета с указанным ID не найдена.");
         }
+    }
+
+    /**
+     * Метод для расчета стратегий для всех монет
+     * @return ResponseEntity с сообщением об успешном выполнении или ошибке
+     */
+    @GetMapping("/api/strategy/calcAll")
+    public ResponseEntity<String> calculateStrategyForAllCoins() throws IOException, InterruptedException {
+        stopCalculation.set(false); // Сбрасываем флаг остановки перед началом
+
+        List<Coin> coins = coinRepository.findAll();
+
+        for (Coin coin : coins) {
+            if (stopCalculation.get()) {
+                break; // Выход из цикла, если установлен флаг остановки
+            }
+
+            String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
+            Path filePath = Paths.get("historical_data", fileName);
+            List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
+            int candleCount = 8640; // 3 (три) месяца
+            int startIndex = Math.max(candles.size() - candleCount, 0);
+            List<Candle> recentCandles = candles.subList(startIndex, candles.size());
+
+            GenATR tester = new GenATR(recentCandles, strategyTestingService, coin);
+            StrategyParamsATR bestGeneticParams = tester.run();
+
+            StrategyStats geneticStats = strategyTestingService.testStrategyATR(coin, bestGeneticParams, recentCandles);
+
+            // Формируем строку результата в формате CSV
+            String result = String.format("%d;%d;%d;%.2f;%d;%d;%.2f;%.2f;%d;%.2f;%.2f;%d",
+                    bestGeneticParams.getCCI(), bestGeneticParams.getEMA(), bestGeneticParams.getLEVERAGE(), bestGeneticParams.getRATIO(), bestGeneticParams.getMaxOpenOrder(), bestGeneticParams.getATR_Length(), bestGeneticParams.getCoeff(),
+                    geneticStats.getProfitInDollars(), geneticStats.getTradeCount(), geneticStats.getProfitableTradePercentage(), geneticStats.getMaxDrawdown(), geneticStats.getTestDate());
+
+            writeResultsToCsv(coin.getCoinName(), coin.getTimeframe(), result);
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при паузе между итерациями: " + e.getMessage());
+                }
+            }
+
+
+        return ResponseEntity.ok("Все стратегические расчеты успешно завершены или остановлены.");
+    }
+
+    /**
+     * Метод для остановки текущего процесса расчета стратегий
+     * @return ResponseEntity с сообщением об успешной остановке
+     */
+    @GetMapping("/api/strategy/stopCalculation")
+    public ResponseEntity<String> stopCalculation() {
+        stopCalculation.set(true);
+        return ResponseEntity.ok("Процесс расчета стратегий остановлен.");
     }
 
     /**

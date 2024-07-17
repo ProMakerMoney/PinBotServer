@@ -51,7 +51,7 @@ public class HistoricalDataController {
             if (!candles.isEmpty()) {
                 // Обновление дат в таблице coins
                 long startDate = startDateTime.toEpochSecond(ZoneOffset.UTC);
-                long endDate = candles.get(candles.size() - 1).getTime();
+                long endDate = candles.getLast().getTime();
                 coin.setStartDateTimeCounted(startDate);
                 coin.setEndDateTimeCounted(endDate);
                 coin.setDataCheck(true);
@@ -63,5 +63,42 @@ public class HistoricalDataController {
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Монета с указанным именем не найдена.");
         }
+    }
+
+    /**
+     * Метод для обновления исторических данных всех монет
+     * @return ResponseEntity с сообщением об успешном выполнении или ошибке
+     */
+    @GetMapping("/updateAllHistoricalData")
+    public ResponseEntity<String> updateAllHistoricalData() {
+        List<Coin> coins = coinRepository.findAll();
+        LocalDateTime startDateTime = LocalDateTime.of(2024, 1, 1, 0, 0);
+        LocalDateTime endDateTime = LocalDateTime.now();
+
+        for (Coin coin : coins) {
+            List<Candle> candles = historicalDataService.generateHistoricalDataFile(
+                    coin.getCoinName(), coin.getTimeframe(),
+                    startDateTime, endDateTime);
+
+            if (!candles.isEmpty()) {
+                long startDate = startDateTime.toEpochSecond(ZoneOffset.UTC);
+                long endDate = candles.get(candles.size() - 1).getTime();
+                coin.setStartDateTimeCounted(startDate);
+                coin.setEndDateTimeCounted(endDate);
+                coin.setDataCheck(true);
+                coin.setIsCounted(true);
+                coinRepository.updateCoin(coin);
+            }
+
+            // Пауза в 1 секунду между итерациями
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при паузе между итерациями: " + e.getMessage());
+            }
+        }
+
+        return ResponseEntity.ok("Все исторические данные успешно обновлены.");
     }
 }

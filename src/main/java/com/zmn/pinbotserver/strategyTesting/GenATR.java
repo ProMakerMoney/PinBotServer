@@ -17,7 +17,7 @@ public class GenATR {
     private final StrategyTestingService strategyTestingService;
     private final Coin coin;
 
-    static final int POPULATION_SIZE = 10000;
+    static final int POPULATION_SIZE = 5000;
     static final int GENERATIONS = 100;
     static double MUTATION_RATE = 0.5;
     static final double CROSSOVER_RATE = 0.9;
@@ -230,12 +230,12 @@ public class GenATR {
 
         int atrLength = individual.atrLength;
         if (ThreadLocalRandom.current().nextDouble() < MUTATION_RATE) {
-            maxOrders = ThreadLocalRandom.current().nextInt(1, 200);
+            atrLength = ThreadLocalRandom.current().nextInt(1, 200);
         }
 
         double coeff = individual.coeff;
         if (ThreadLocalRandom.current().nextDouble() < MUTATION_RATE) {
-            ratio = ThreadLocalRandom.current().nextDouble(0.1, 10.0);
+            coeff = ThreadLocalRandom.current().nextDouble(0.1, 10.0);
         }
 
         return new Individual(cci, ema, leverage, ratio, maxOrders, atrLength, coeff);
