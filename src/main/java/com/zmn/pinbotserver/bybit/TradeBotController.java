@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-
 @RestController
 @RequestMapping("/api/tradebot")
 public class TradeBotController {
@@ -38,6 +37,26 @@ public class TradeBotController {
             @RequestParam double coeff) {
         StrategyParamsBybit strategy = tradeBotService.addStrategyToBot(botIndex, coinName, timeFrame, CCI, EMA, leverage, ratio, maxOrders, ATR, coeff);
         return ResponseEntity.ok(strategy);
+    }
+
+    @DeleteMapping("/deleteStrategy/{botIndex}")
+    public ResponseEntity<String> deleteStrategy(@PathVariable int botIndex, @RequestParam String coinName, @RequestParam String timeFrame) {
+        try {
+            tradeBotService.deleteStrategy(botIndex, coinName, timeFrame);
+            return ResponseEntity.ok("Strategy deleted successfully.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/deleteBot/{botIndex}")
+    public ResponseEntity<String> deleteBot(@PathVariable int botIndex) {
+        try {
+            tradeBotService.deleteBot(botIndex);
+            return ResponseEntity.ok("Bot deleted successfully.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @GetMapping("/getBots")

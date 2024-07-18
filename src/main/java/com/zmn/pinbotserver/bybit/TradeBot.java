@@ -1,5 +1,6 @@
 package com.zmn.pinbotserver.bybit;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,7 +15,7 @@ public class TradeBot implements Serializable {
     private double risk;
     private List<StrategyParamsBybit> strategies;
 
-    public TradeBot(double initialDeposit, double risk) {
+    public TradeBot(@JsonProperty("initialDeposit") double initialDeposit, @JsonProperty("risk") double risk) {
         this.initialDeposit = initialDeposit;
         this.risk = risk;
         this.strategies = new ArrayList<>();
@@ -25,34 +26,4 @@ public class TradeBot implements Serializable {
     }
 }
 
-@Getter
-@Setter
-class StrategyParamsBybit implements Serializable {
-    private String coinName;
-    private String timeFrame;
-    private double initialDeposit;
-    private double risk;
-    private int CCI;
-    private int EMA;
-    private int leverage;
-    private double ratio;
-    private int maxOrders;
-    private int ATR;
-    private double coeff;
-    private String status;
 
-    public StrategyParamsBybit(String coinName, String timeFrame, double initialDeposit, double risk, int CCI, int EMA, int leverage, double ratio, int maxOrders, int ATR, double coeff) {
-        this.coinName = coinName;
-        this.timeFrame = timeFrame;
-        this.initialDeposit = initialDeposit;
-        this.risk = risk;
-        this.CCI = CCI;
-        this.EMA = EMA;
-        this.leverage = leverage;
-        this.ratio = ratio;
-        this.maxOrders = maxOrders;
-        this.ATR = ATR;
-        this.coeff = coeff;
-        this.status = "added";
-    }
-}

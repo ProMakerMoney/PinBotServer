@@ -1,6 +1,12 @@
 package com.zmn.pinbotserver.bybit;
 
 
+import com.zmn.pinbotserver.model.candle.Candle;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
@@ -12,6 +18,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -20,10 +27,13 @@ public class BybitApi {
     private final String API_KEY;
     private final String API_SECRET;
 
+    private final RestTemplate restTemplate;
+
     public BybitApi(String apiKey, String apiSecret, boolean isTestnet) {
         this.BASE_URL = isTestnet ? "https://api-testnet.bybit.com" : "https://api.bybit.com";
         this.API_KEY = apiKey;
         this.API_SECRET = apiSecret;
+        this.restTemplate = new RestTemplate();
     }
 
     private String getTimestamp() {
@@ -93,7 +103,7 @@ public class BybitApi {
 
         int responseCode = connection.getResponseCode();
         if (responseCode == HttpURLConnection.HTTP_OK) {
-            System.out.println("Ордер размещено успешно: " + new String(connection.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
+            System.out.println("Ордер размещен успешно: " + new String(connection.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
         } else {
             System.err.println("Ошибка размещения ордера: " + new String(connection.getErrorStream().readAllBytes(), StandardCharsets.UTF_8));
         }
@@ -130,6 +140,45 @@ public class BybitApi {
             System.out.println("Открытие ордера: " + new String(connection.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
         } else {
             System.err.println("Ошибка открытия ордера: " + new String(connection.getErrorStream().readAllBytes(), StandardCharsets.UTF_8));
+        }
+    }
+
+    /**
+     * Метод для получения последней свечи (K-line) из API
+     *
+     * @param symbol   символ инструмента
+     * @param interval интервал времени для свечей
+     * @return Candle объект последней свечи
+     */
+    public Candle getCandle(String symbol, String interval) {
+        // Формирование URL для запроса данных свечей с параметрами, ограничивающими результат одним элементом
+        String url = String.format("https://api.bybit.com/v5/market/kline?category=inverse&symbol=%s&interval=%s&limit=1",
+                symbol, interval);
+        System.out.println("ЗАПРОС: " + url); // Вывод URL запроса для отладки
+        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class); // Выполнение GET-запроса и получение ответа в виде ResponseEntity
+
+        // Проверка статуса ответа
+        if (response.getStatusCode() == HttpStatus.OK) {
+            Map<String, Object> result = (Map<String, Object>) response.getBody().get("result"); // Извлечение результата из ответа
+            List<List<String>> klineList = (List<List<String>>) result.get("list"); // Получение списка данных свечей
+            if (!klineList.isEmpty()) {
+                List<String> kline = klineList.getFirst(); // Получаем данные последней свечи
+
+                // Создаем и возвращаем объект Candle
+                return new Candle(
+                        Long.parseLong(kline.get(0)), // timestamp
+                        Double.parseDouble(kline.get(1)), // open
+                        Double.parseDouble(kline.get(2)), // high
+                        Double.parseDouble(kline.get(3)), // low
+                        Double.parseDouble(kline.get(4)), // close
+                        Double.parseDouble(kline.get(5)), // volume
+                        Double.parseDouble(kline.get(6)) // turnover
+                );
+            } else {
+                throw new RuntimeException("Нет данных о свечах");
+            }
+        } else {
+            throw new RuntimeException("Ошибка получения данных от Bybit API"); // Исключение в случае неудачи запроса
         }
     }
 }

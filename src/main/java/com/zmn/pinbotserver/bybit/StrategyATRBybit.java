@@ -9,6 +9,11 @@ import com.zmn.pinbotserver.model.strategy.StrategyParamsATR;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,13 +87,15 @@ public class StrategyATRBybit {
     @Getter
     String mode = "added"; // режим по умолчанию
 
+    BybitApi api = new BybitApi("bvQRWwQU8QapNl3Ppl", "P5h8tnabkftRGzrdFV4DXbggI7XJnaaXx6KY", false);
+
     /**
      * Конструктор стратегии ATR.
      *
      * @param strategyParams Параметры стратегии.
      * @param initialDeposit Начальный депозит.
-     * @param minTradingQty Минимальное количество для торговли.
-     * @param risk Уровень риска.
+     * @param minTradingQty  Минимальное количество для торговли.
+     * @param risk           Уровень риска.
      */
     public StrategyATRBybit(StrategyParamsATR strategyParams, double initialDeposit, double minTradingQty, double risk) {
         this.tradingPair = strategyParams.getCoinName();
@@ -127,10 +134,10 @@ public class StrategyATRBybit {
     /**
      * Метод для расчета AlphaTrend индикатора.
      *
-     * @param low Текущая минимальная цена.
-     * @param high Текущая максимальная цена.
-     * @param atr Значение ATR.
-     * @param coeff Множитель для AlphaTrend.
+     * @param low    Текущая минимальная цена.
+     * @param high   Текущая максимальная цена.
+     * @param atr    Значение ATR.
+     * @param coeff  Множитель для AlphaTrend.
      * @param period Период для AlphaTrend.
      */
     public void calcAlphaTrend(double low, double high, double atr, double coeff, int period) {
@@ -151,7 +158,7 @@ public class StrategyATRBybit {
     /**
      * Метод для определения пересечения снизу.
      *
-     * @param current Текущее значение.
+     * @param current  Текущее значение.
      * @param previous Предыдущее значение.
      * @return true, если произошло пересечение снизу, иначе false.
      */
@@ -162,7 +169,7 @@ public class StrategyATRBybit {
     /**
      * Метод для определения пересечения сверху.
      *
-     * @param current Текущее значение.
+     * @param current  Текущее значение.
      * @param previous Предыдущее значение.
      * @return true, если произошло пересечение сверху, иначе false.
      */
@@ -184,7 +191,7 @@ public class StrategyATRBybit {
      * Метод для расчета Money Flow Index (MFI).
      *
      * @param candleHistory Список свечей.
-     * @param period Период для MFI.
+     * @param period        Период для MFI.
      * @return Значение MFI.
      * @throws IllegalArgumentException если недостаточно данных для расчета MFI.
      */
@@ -214,7 +221,7 @@ public class StrategyATRBybit {
      * Метод для расчета Average True Range (ATR).
      *
      * @param candleHistory Список свечей.
-     * @param ATR_length Период для ATR.
+     * @param ATR_length    Период для ATR.
      * @return Значение ATR.
      * @throws IllegalArgumentException если недостаточно данных для расчета ATR.
      */
@@ -239,7 +246,7 @@ public class StrategyATRBybit {
      * Метод для расчета EMA.
      *
      * @param newValue Новое значение для включения в расчет.
-     * @param period Период EMA.
+     * @param period   Период EMA.
      * @return Рассчитанное значение EMA.
      */
     public double calculateEMA(double newValue, int period) {
@@ -281,9 +288,12 @@ public class StrategyATRBybit {
     /**
      * Метод, вызываемый при обновлении цены.
      *
-     * @param candle Новая свеча.
+     *
      */
-    public void onPriceUpdate(Candle candle) {
+    public void onPriceUpdate() {
+
+        Candle candle = api.getCandle(tradingPair, "15");
+
         if (!candleHistory.contains(candle)) {
             currentPrice = candle.getClose();
             candleHistory.add(candle);
@@ -294,7 +304,7 @@ public class StrategyATRBybit {
             return;
         }
         if (candleHistory.size() > MINIMUM_CANDLES) {
-            candleHistory.remove(0);
+            candleHistory.removeFirst();
         }
         double atr = calculateATR(candleHistory, ATR_length);
         calcAlphaTrend(candle.getLow(), candle.getHigh(), atr, coeff, ATR_length);
@@ -324,138 +334,105 @@ public class StrategyATRBybit {
         }
     }
 
-    /**
-     * Метод для проверки готовности открытия первой LONG позиции.
-     *
-     * @param cci Текущее значение CCI.
-     */
     private void checkFirstLongReady(double cci) {
         if (cci < lowerBound && !longIsOpen && !longIsReadyAVG && openOrders == 0 && !longIsReady) {
             longIsReady = true;
+            log("Готовность открытия первой LONG позиции.");
         }
     }
 
-    /**
-     * Метод для проверки готовности открытия первой SHORT позиции.
-     *
-     * @param cci Текущее значение CCI.
-     */
     private void checkFirstShortReady(double cci) {
         if (cci > upperBound && !shortIsOpen && !shortIsReadyAVG && openOrders == 0 && !shortIsReady) {
             shortIsReady = true;
+            log("Готовность открытия первой SHORT позиции.");
         }
     }
 
-    /**
-     * Метод для проверки готовности усреднения LONG позиции.
-     *
-     * @param cci Текущее значение CCI.
-     */
     private void checkLongAverageReady(double cci) {
         if (direction == TYPE.LONG && longIsOpen && openOrders <= MAXOrders && cci > lowerBound) {
             cciLongRollback = true;
         }
         if (direction == TYPE.LONG && longIsOpen && openOrders <= MAXOrders && cciLongRollback && cci < lowerBound) {
             longIsReadyAVG = true;
+            log("Готовность усреднения LONG позиции.");
         }
     }
 
-    /**
-     * Метод для проверки готовности усреднения SHORT позиции.
-     *
-     * @param cci Текущее значение CCI.
-     */
     private void checkShortAverageReady(double cci) {
         if (direction == TYPE.SHORT && shortIsOpen && openOrders <= MAXOrders && cci < upperBound) {
             cciShortRollback = true;
         }
         if (direction == TYPE.SHORT && shortIsOpen && openOrders <= MAXOrders && cciShortRollback && cci > upperBound) {
             shortIsReadyAVG = true;
+            log("Готовность усреднения SHORT позиции.");
         }
     }
 
-    /**
-     * Метод для проверки условий открытия первой LONG позиции.
-     *
-     * @param cci Текущее значение CCI.
-     * @param ema Текущее значение EMA.
-     * @return true, если условия выполнены, иначе false.
-     */
     private boolean canOpenFirstLongPosition(double cci, double ema) {
-        return direction == TYPE.LONG && longIsReady && cci > ema && !longIsReadyAVG && !longIsOpen && cci <= upperBound && !shortIsOpen && !shortIsReadyAVG;
+        boolean canOpen = direction == TYPE.LONG && longIsReady && cci > ema && !longIsReadyAVG && !longIsOpen && cci <= upperBound && !shortIsOpen && !shortIsReadyAVG;
+        if (canOpen) {
+            log("Условия для открытия первой LONG позиции выполнены.");
+        }
+        return canOpen;
     }
 
-    /**
-     * Метод для проверки условий открытия первой SHORT позиции.
-     *
-     * @param cci Текущее значение CCI.
-     * @param ema Текущее значение EMA.
-     * @return true, если условия выполнены, иначе false.
-     */
     private boolean canOpenFirstShortPosition(double cci, double ema) {
-        return direction == TYPE.SHORT && shortIsReady && cci < ema && !shortIsReadyAVG && !shortIsOpen && cci >= lowerBound && !longIsOpen && !longIsReadyAVG;
+        boolean canOpen = direction == TYPE.SHORT && shortIsReady && cci < ema && !shortIsReadyAVG && !shortIsOpen && cci >= lowerBound && !longIsOpen && !longIsReadyAVG;
+        if (canOpen) {
+            log("Условия для открытия первой SHORT позиции выполнены.");
+        }
+        return canOpen;
     }
 
-    /**
-     * Метод для проверки условий усреднения LONG позиции.
-     *
-     * @param cci Текущее значение CCI.
-     * @param ema Текущее значение EMA.
-     * @return true, если условия выполнены, иначе false.
-     */
     private boolean canAverageLongPosition(double cci, double ema) {
-        return direction == TYPE.LONG && longIsReadyAVG && cci > ema && currentPrice < last_long_price && longIsOpen && !shortIsOpen && !shortIsReadyAVG;
+        boolean canAverage = direction == TYPE.LONG && longIsReadyAVG && cci > ema && currentPrice < last_long_price && longIsOpen && !shortIsOpen && !shortIsReadyAVG;
+        if (canAverage) {
+            log("Условия для усреднения LONG позиции выполнены.");
+        }
+        return canAverage;
     }
 
-    /**
-     * Метод для проверки условий усреднения SHORT позиции.
-     *
-     * @param cci Текущее значение CCI.
-     * @param ema Текущее значение EMA.
-     * @return true, если условия выполнены, иначе false.
-     */
     private boolean canAverageShortPosition(double cci, double ema) {
-        return direction == TYPE.SHORT && shortIsReadyAVG && cci < ema && currentPrice > last_short_price && !longIsOpen && shortIsOpen;
+        boolean canAverage = direction == TYPE.SHORT && shortIsReadyAVG && cci < ema && currentPrice > last_short_price && !longIsOpen && shortIsOpen;
+        if (canAverage) {
+            log("Условия для усреднения SHORT позиции выполнены.");
+        }
+        return canAverage;
     }
 
-    /**
-     * Метод для проверки условий закрытия LONG позиции.
-     *
-     * @param cci Текущее значение CCI.
-     * @return true, если условия выполнены, иначе false.
-     */
     private boolean canCloseLongPosition(double cci) {
         double liquidationLevelPer = 100.0 / LEVERAGE; // Уровень ликвидации в процентах
-        return (longIsOpen && (currentPrice <= last_long_price * (1 - liquidationLevelPer / 100)) ||
+        boolean canClose = (longIsOpen && (currentPrice <= last_long_price * (1 - liquidationLevelPer / 100)) ||
                 (cci > upperBound && longIsOpen && openOrders > 0));
+        if (canClose) {
+            log("Условия для закрытия LONG позиции выполнены.");
+        }
+        return canClose;
     }
 
-    /**
-     * Метод для проверки условий закрытия SHORT позиции.
-     *
-     * @param cci Текущее значение CCI.
-     * @return true, если условия выполнены, иначе false.
-     */
     private boolean canCloseShortPosition(double cci) {
         double liquidationLevelPer = 100.0 / LEVERAGE; // Уровень ликвидации в процентах
-        return (shortIsOpen && (currentPrice >= last_short_price * (1 + liquidationLevelPer / 100)) ||
+        boolean canClose = (shortIsOpen && (currentPrice >= last_short_price * (1 + liquidationLevelPer / 100)) ||
                 (cci < lowerBound && shortIsOpen && openOrders > 0));
+        if (canClose) {
+            log("Условия для закрытия SHORT позиции выполнены.");
+        }
+        return canClose;
     }
 
-    /**
-     * Метод для открытия LONG позиции.
-     *
-     * @param candle Свеча.
-     */
     private void openLongPosition(Candle candle) {
-        if ("stop".equals(mode) || "smooth_stop".equals(mode)) {
-            return;
-        }
         calculateInitialMarginPerOrder();
         if (currentDeposit < marginPerOrder * MAXOrders) {
             return;
         }
         openOrders++;
+
+        try {
+            api.placeOrder(tradingPair, "Buy", "Market", String.valueOf(marginQTY), null);
+        } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+            throw new RuntimeException(e);
+        }
+
         position = new Position(tradingPair, TYPE.LONG, LEVERAGE);
         Order order = new Order(tradingPair, "buy", candle.getTime(), marginQTY, currentPrice, STATUS.OPEN);
         position.addOrder(order);
@@ -463,32 +440,37 @@ public class StrategyATRBybit {
         last_long_price = currentPrice;
         longIsReady = false;
         longIsOpen = true;
+        log("Открыта LONG позиция.");
     }
 
-    /**
-     * Метод для усреднения LONG позиции.
-     *
-     * @param candle Свеча.
-     */
     private void averageLongPosition(Candle candle) {
         if (currentDeposit < marginPerOrder) {
             return;
         }
         openOrders++;
+
+        try {
+            api.placeOrder(tradingPair, "Buy", "Market", String.valueOf(marginQTY), null);
+        } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+            throw new RuntimeException(e);
+        }
+
         Order order = new Order(tradingPair, "buy", candle.getTime(), marginQTY, currentPrice, STATUS.OPEN);
         position.addOrder(order);
         orderHistory.add(order);
         last_long_price = currentPrice;
         longIsReadyAVG = false;
         cciLongRollback = false;
+        log("Усреднена LONG позиция.");
     }
 
-    /**
-     * Метод для закрытия LONG позиции.
-     *
-     * @param candle Свеча.
-     */
     private void closeLongPosition(Candle candle) {
+        try {
+            api.placeOrder(tradingPair, "Sell", "Market", String.valueOf(marginQTY * openOrders), null);
+        } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+            throw new RuntimeException(e);
+        }
+
         Order order = new Order(tradingPair, "sell", candle.getTime(), marginQTY * openOrders, currentPrice, STATUS.CLOSE);
         position.closePosition(order);
         orderHistory.add(order);
@@ -500,22 +482,22 @@ public class StrategyATRBybit {
         cciLongRollback = false;
         openOrders = 0;
         positionHistory.add(position);
+        log("Закрыта LONG позиция. Прибыль: " + profit);
     }
 
-    /**
-     * Метод для открытия SHORT позиции.
-     *
-     * @param candle Свеча.
-     */
     private void openShortPosition(Candle candle) {
-        if ("stop".equals(mode) || "smooth_stop".equals(mode)) {
-            return;
-        }
         calculateInitialMarginPerOrder();
         if (currentDeposit < marginPerOrder * MAXOrders) {
             return;
         }
         openOrders++;
+
+        try {
+            api.placeOrder(tradingPair, "Sell", "Market", String.valueOf(marginQTY), null);
+        } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+            throw new RuntimeException(e);
+        }
+
         position = new Position(tradingPair, TYPE.SHORT, LEVERAGE);
         Order order = new Order(tradingPair, "sell", candle.getTime(), marginQTY, currentPrice, STATUS.OPEN);
         position.addOrder(order);
@@ -523,32 +505,37 @@ public class StrategyATRBybit {
         last_short_price = currentPrice;
         shortIsReady = false;
         shortIsOpen = true;
+        log("Открыта SHORT позиция.");
     }
 
-    /**
-     * Метод для усреднения SHORT позиции.
-     *
-     * @param candle Свеча.
-     */
     private void averageShortPosition(Candle candle) {
         if (currentDeposit < marginPerOrder) {
             return;
         }
         openOrders++;
+
+        try {
+            api.placeOrder(tradingPair, "Sell", "Market", String.valueOf(marginQTY), null);
+        } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+            throw new RuntimeException(e);
+        }
+
         Order order = new Order(tradingPair, "sell", candle.getTime(), marginQTY, currentPrice, STATUS.OPEN);
         position.addOrder(order);
         orderHistory.add(order);
         last_short_price = currentPrice;
         shortIsReadyAVG = false;
         cciShortRollback = false;
+        log("Усреднена SHORT позиция.");
     }
 
-    /**
-     * Метод для закрытия SHORT позиции.
-     *
-     * @param candle Свеча.
-     */
     private void closeShortPosition(Candle candle) {
+        try {
+            api.placeOrder(tradingPair, "Buy", "Market", String.valueOf(marginQTY * openOrders), null);
+        } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+            throw new RuntimeException(e);
+        }
+
         Order order = new Order(tradingPair, "buy", candle.getTime(), marginQTY * openOrders, currentPrice, STATUS.CLOSE);
         position.closePosition(order);
         orderHistory.add(order);
@@ -559,5 +546,14 @@ public class StrategyATRBybit {
         shortIsReadyAVG = false;
         openOrders = 0;
         positionHistory.add(position);
+        log("Закрыта SHORT позиция. Прибыль: " + profit);
     }
+
+    private void log(String message) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        String timestamp = LocalDateTime.now().format(formatter);
+        System.out.println(timestamp + " - " + message);
+    }
+
+
 }

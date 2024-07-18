@@ -1,0 +1,1 @@
+[{"initialDeposit":100.0,"risk":10.0,"strategies":[{"coinName":"BTC","timeFrame":"1h","initialDeposit":100.0,"risk":10.0,"leverage":10,"ratio":1.5,"maxOrders":5,"coeff":1.0,"status":"added","ema":9,"cci":14,"atr":14}]}]
