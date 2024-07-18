@@ -6,6 +6,7 @@ import com.zmn.pinbotserver.model.order.Position;
 import com.zmn.pinbotserver.model.order.STATUS;
 import com.zmn.pinbotserver.model.order.TYPE;
 import com.zmn.pinbotserver.model.strategy.StrategyParamsATR;
+import com.zmn.pinbotserver.storage.CoinRepository;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class StrategyATRBybit {
 
@@ -427,10 +429,14 @@ public class StrategyATRBybit {
         }
         openOrders++;
 
-        try {
-            api.placeOrder(tradingPair, "Buy", "Market", String.valueOf(marginQTY), null);
-        } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
-            throw new RuntimeException(e);
+        if(Objects.equals(mode, "activate")) {
+            try {
+                api.placeOrder(tradingPair, "Buy", "Market", String.valueOf(marginQTY), null);
+            } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            log("Биржа деактивирована");
         }
 
         position = new Position(tradingPair, TYPE.LONG, LEVERAGE);
@@ -440,7 +446,7 @@ public class StrategyATRBybit {
         last_long_price = currentPrice;
         longIsReady = false;
         longIsOpen = true;
-        log("Открыта LONG позиция.");
+        log("Открыта LONG позиция по цене: " + candle);
     }
 
     private void averageLongPosition(Candle candle) {
@@ -449,10 +455,14 @@ public class StrategyATRBybit {
         }
         openOrders++;
 
-        try {
-            api.placeOrder(tradingPair, "Buy", "Market", String.valueOf(marginQTY), null);
-        } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
-            throw new RuntimeException(e);
+        if(Objects.equals(mode, "activate")) {
+            try {
+                api.placeOrder(tradingPair, "Buy", "Market", String.valueOf(marginQTY), null);
+            } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            log("Биржа деактивирована");
         }
 
         Order order = new Order(tradingPair, "buy", candle.getTime(), marginQTY, currentPrice, STATUS.OPEN);
@@ -461,14 +471,19 @@ public class StrategyATRBybit {
         last_long_price = currentPrice;
         longIsReadyAVG = false;
         cciLongRollback = false;
-        log("Усреднена LONG позиция.");
+        log("Усреднена LONG позиция по цене: " + currentPrice);
     }
 
     private void closeLongPosition(Candle candle) {
-        try {
-            api.placeOrder(tradingPair, "Sell", "Market", String.valueOf(marginQTY * openOrders), null);
-        } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
-            throw new RuntimeException(e);
+
+        if(Objects.equals(mode, "activate")) {
+            try {
+                api.placeOrder(tradingPair, "Sell", "Market", String.valueOf(marginQTY * openOrders), null);
+            } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            log("Биржа деактивирована");
         }
 
         Order order = new Order(tradingPair, "sell", candle.getTime(), marginQTY * openOrders, currentPrice, STATUS.CLOSE);
@@ -482,7 +497,7 @@ public class StrategyATRBybit {
         cciLongRollback = false;
         openOrders = 0;
         positionHistory.add(position);
-        log("Закрыта LONG позиция. Прибыль: " + profit);
+        log("Закрыта LONG позиция по цене: " + currentPrice + "Прибыль: " + profit);
     }
 
     private void openShortPosition(Candle candle) {
@@ -492,10 +507,14 @@ public class StrategyATRBybit {
         }
         openOrders++;
 
-        try {
-            api.placeOrder(tradingPair, "Sell", "Market", String.valueOf(marginQTY), null);
-        } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
-            throw new RuntimeException(e);
+        if(Objects.equals(mode, "activate")) {
+            try {
+                api.placeOrder(tradingPair, "Sell", "Market", String.valueOf(marginQTY), null);
+            } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            log("Биржа деактивирована");
         }
 
         position = new Position(tradingPair, TYPE.SHORT, LEVERAGE);
@@ -505,7 +524,7 @@ public class StrategyATRBybit {
         last_short_price = currentPrice;
         shortIsReady = false;
         shortIsOpen = true;
-        log("Открыта SHORT позиция.");
+        log("Открыта SHORT позиция по цене: " + currentPrice);
     }
 
     private void averageShortPosition(Candle candle) {
@@ -514,10 +533,14 @@ public class StrategyATRBybit {
         }
         openOrders++;
 
-        try {
-            api.placeOrder(tradingPair, "Sell", "Market", String.valueOf(marginQTY), null);
-        } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
-            throw new RuntimeException(e);
+        if(Objects.equals(mode, "activate")) {
+            try {
+                api.placeOrder(tradingPair, "Sell", "Market", String.valueOf(marginQTY), null);
+            } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            log("Биржа деактивирована");
         }
 
         Order order = new Order(tradingPair, "sell", candle.getTime(), marginQTY, currentPrice, STATUS.OPEN);
@@ -526,14 +549,19 @@ public class StrategyATRBybit {
         last_short_price = currentPrice;
         shortIsReadyAVG = false;
         cciShortRollback = false;
-        log("Усреднена SHORT позиция.");
+        log("Усреднена SHORT позиция по цене: " + currentPrice);
     }
 
     private void closeShortPosition(Candle candle) {
-        try {
-            api.placeOrder(tradingPair, "Buy", "Market", String.valueOf(marginQTY * openOrders), null);
-        } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
-            throw new RuntimeException(e);
+
+        if(Objects.equals(mode, "activate")) {
+            try {
+                api.placeOrder(tradingPair, "Buy", "Market", String.valueOf(marginQTY * openOrders), null);
+            } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            log("Биржа деактивирована");
         }
 
         Order order = new Order(tradingPair, "buy", candle.getTime(), marginQTY * openOrders, currentPrice, STATUS.CLOSE);
@@ -546,7 +574,7 @@ public class StrategyATRBybit {
         shortIsReadyAVG = false;
         openOrders = 0;
         positionHistory.add(position);
-        log("Закрыта SHORT позиция. Прибыль: " + profit);
+        log("Закрыта SHORT позиция по цене: " + currentPrice + "Прибыль: " + profit);
     }
 
     private void log(String message) {
@@ -554,6 +582,4 @@ public class StrategyATRBybit {
         String timestamp = LocalDateTime.now().format(formatter);
         System.out.println(timestamp + " - " + message);
     }
-
-
 }

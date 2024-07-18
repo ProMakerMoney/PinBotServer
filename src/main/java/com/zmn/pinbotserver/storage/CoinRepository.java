@@ -36,6 +36,8 @@ public interface CoinRepository {
      */
     Coin save(Coin coin);
 
+    double findMinQTYByCoinName(String coinName);
+
     /**
      * Метод для удаления монеты из базы данных по её идентификатору.
      *

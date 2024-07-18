@@ -142,6 +142,13 @@ public class CoinDBStorage implements CoinRepository {
         }
     }
 
+    @Override
+    public double findMinQTYByCoinName(String coinName) {
+        String sql = "SELECT * FROM coins WHERE coin_name = ?";
+        List<Coin> coins = jdbcTemplate.query(sql, new CoinRowMapper(), coinName);
+        return coins.getFirst().getMinTradingQty();
+    }
+
 
     /**
      * Метод для удаления монеты из базы данных по её идентификатору.

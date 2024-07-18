@@ -43,7 +43,7 @@ public class TradeBotController {
     public ResponseEntity<String> deleteStrategy(@PathVariable int botIndex, @RequestParam String coinName, @RequestParam String timeFrame) {
         try {
             tradeBotService.deleteStrategy(botIndex, coinName, timeFrame);
-            return ResponseEntity.ok("Strategy deleted successfully.");
+            return ResponseEntity.ok("Стратегия удалена успешно.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -53,7 +53,7 @@ public class TradeBotController {
     public ResponseEntity<String> deleteBot(@PathVariable int botIndex) {
         try {
             tradeBotService.deleteBot(botIndex);
-            return ResponseEntity.ok("Bot deleted successfully.");
+            return ResponseEntity.ok("Бот удален успешно.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
