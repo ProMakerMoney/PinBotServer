@@ -17,8 +17,8 @@ public class GenATR {
     private final StrategyTestingService strategyTestingService;
     private final Coin coin;
 
-    static final int POPULATION_SIZE = 25000;
-    static final int GENERATIONS = 100;
+    static final int POPULATION_SIZE = 5000;
+    static final int GENERATIONS = 200;
     static double MUTATION_RATE = 0.5;
     static final double CROSSOVER_RATE = 0.9;
 
