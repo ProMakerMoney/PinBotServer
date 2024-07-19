@@ -70,4 +70,10 @@ public class TradeBotController {
     public ResponseEntity<String> initializeBotsFromFile() {
         return tradeBotService.initializeBotsFromFile();
     }
+
+    @PostMapping("/updateStrategiesMode")
+    public ResponseEntity<String> updateStrategiesMode(@RequestParam String newMode) {
+        tradeBotService.updateStrategiesMode(newMode);
+        return ResponseEntity.ok("Режим всех стратегий успешно обновлен.");
+    }
 }

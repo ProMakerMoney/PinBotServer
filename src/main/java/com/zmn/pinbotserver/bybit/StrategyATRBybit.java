@@ -585,7 +585,7 @@ public class StrategyATRBybit {
     private void log(String message) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         String timestamp = LocalDateTime.now().format(formatter);
-        System.out.println(timestamp + " - " + message);
+        System.out.println(tradingPair + " - " + timestamp + " - " + message);
     }
 
     public void getCurrentCandles() throws IOException {

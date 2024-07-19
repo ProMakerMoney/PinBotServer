@@ -121,4 +121,14 @@ public class TradeBotService {
         }
     }
 
+
+    public void updateStrategiesMode(String newMode) {
+        for (TradeBot bot : tradeBots) {
+            for (StrategyATRBybit strategy : strategies) {
+                strategy.setMode(newMode);
+            }
+        }
+        saveTradeBots();
+    }
+
 }
