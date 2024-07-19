@@ -18,6 +18,7 @@ import java.util.Optional;
 @RequestMapping("/api/data") // Базовый URL для всех методов данного контроллера
 public class HistoricalDataController {
 
+
     private final CoinService coinService;
     private final HistoricalDataService historicalDataService;
     private final CoinRepository coinRepository;

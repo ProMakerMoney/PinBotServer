@@ -5,12 +5,15 @@ import com.zmn.pinbotserver.model.order.Order;
 import com.zmn.pinbotserver.model.order.Position;
 import com.zmn.pinbotserver.model.order.STATUS;
 import com.zmn.pinbotserver.model.order.TYPE;
-import com.zmn.pinbotserver.model.strategy.StrategyParamsATR;
-import com.zmn.pinbotserver.storage.CoinRepository;
+
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
@@ -41,6 +44,7 @@ public class StrategyATRBybit {
 
     private final List<Double> emaValues = new ArrayList<>(); // Список значений EMA
 
+    @Getter
     String tradingPair;
 
     @Getter
@@ -91,6 +95,7 @@ public class StrategyATRBybit {
 
     BybitApi api = new BybitApi("bvQRWwQU8QapNl3Ppl", "P5h8tnabkftRGzrdFV4DXbggI7XJnaaXx6KY", false);
 
+
     /**
      * Конструктор стратегии ATR.
      *
@@ -99,19 +104,19 @@ public class StrategyATRBybit {
      * @param minTradingQty  Минимальное количество для торговли.
      * @param risk           Уровень риска.
      */
-    public StrategyATRBybit(StrategyParamsATR strategyParams, double initialDeposit, double minTradingQty, double risk) {
+    public StrategyATRBybit(StrategyParamsBybit strategyParams, double initialDeposit, double minTradingQty, double risk) {
         this.tradingPair = strategyParams.getCoinName();
-        this.LEVERAGE = strategyParams.getLEVERAGE();
+        this.LEVERAGE = strategyParams.getLeverage();
         this.CCI_PERIOD = strategyParams.getCCI();
         this.EMA_PERIOD = strategyParams.getEMA();
-        this.upperBound = 100 * strategyParams.getRATIO();
-        this.lowerBound = -100 * strategyParams.getRATIO();
-        this.MAXOrders = strategyParams.getMaxOpenOrder();
+        this.upperBound = 100 * strategyParams.getRatio();
+        this.lowerBound = -100 * strategyParams.getRatio();
+        this.MAXOrders = strategyParams.getMaxOrders();
         this.initialDeposit = initialDeposit;
         this.currentDeposit = initialDeposit;
         this.minTradingQty = minTradingQty;
         this.risk = risk;
-        this.ATR_length = strategyParams.getATR_Length();
+        this.ATR_length = strategyParams.getATR();
         this.coeff = strategyParams.getCoeff();
         calculateInitialMarginPerOrder();
     }
@@ -581,5 +586,43 @@ public class StrategyATRBybit {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         String timestamp = LocalDateTime.now().format(formatter);
         System.out.println(timestamp + " - " + message);
+    }
+
+    public void getCurrentCandles() throws IOException {
+        String fileName = tradingPair + "_" + "15" + "_history.csv";
+        Path filePath = Paths.get("historical_data", fileName);
+        List<Candle> candles = readCandlesFromCsv(filePath);
+        int candleCount = 300; // 300 свечей
+        int startIndex = Math.max(candles.size() - candleCount, 0);
+        List<Candle> recentCandles = candles.subList(startIndex, candles.size());
+        candleHistory = recentCandles;
+    }
+
+    /**
+     * Метод для чтения свечей из CSV файла
+     * @param filePath путь к файлу
+     * @return список свечей
+     * @throws IOException возможное исключение ввода-вывода
+     */
+    public List<Candle> readCandlesFromCsv(Path filePath) throws IOException {
+        List<Candle> candles = new ArrayList<>();
+        try (BufferedReader reader = Files.newBufferedReader(filePath)) {
+            String line;
+            reader.readLine(); // Пропускаем заголовок
+            while ((line = reader.readLine()) != null) {
+                String[] fields = line.split(",");
+                Candle candle = new Candle(
+                        Long.parseLong(fields[0]),
+                        Double.parseDouble(fields[1]),
+                        Double.parseDouble(fields[2]),
+                        Double.parseDouble(fields[3]),
+                        Double.parseDouble(fields[4]),
+                        Double.parseDouble(fields[5]),
+                        Double.parseDouble(fields[6])
+                );
+                candles.add(candle);
+            }
+        }
+        return candles;
     }
 }

@@ -1,1 +1,78 @@
-[{"initialDeposit":100.0,"risk":10.0,"strategies":[{"coinName":"BTC","timeFrame":"1h","initialDeposit":100.0,"risk":10.0,"leverage":10,"ratio":1.5,"maxOrders":5,"coeff":1.0,"status":"added","ema":9,"cci":14,"atr":14}]}]
+[
+  {
+    "initialDeposit": 100.0,
+    "risk": 10.0,
+    "strategies": [
+      {
+        "coinName": "LINKUSDT",
+        "timeFrame": "15",
+        "initialDeposit": 100.0,
+        "risk": 10.0,
+        "CCI": 12,
+        "EMA": 20,
+        "leverage": 14,
+        "ratio": 1.46,
+        "maxOrders": 1,
+        "ATR": 185,
+        "coeff": 9.92,
+        "status": "added"
+      },
+      {
+        "coinName": "LTCUSDT",
+        "timeFrame": "15",
+        "initialDeposit": 100.0,
+        "risk": 10.0,
+        "CCI": 34,
+        "EMA": 99,
+        "leverage": 15,
+        "ratio": 0.95,
+        "maxOrders": 1,
+        "ATR": 192,
+        "coeff": 8.77,
+        "status": "added"
+      },
+      {
+        "coinName": "AAVEUSDT",
+        "timeFrame": "15",
+        "initialDeposit": 100.0,
+        "risk": 10.0,
+        "CCI": 17,
+        "EMA": 114,
+        "leverage": 15,
+        "ratio": 1.59,
+        "maxOrders": 1,
+        "ATR": 70,
+        "coeff": 7.23,
+        "status": "added"
+      },
+      {
+        "coinName": "FILUSDT",
+        "timeFrame": "15",
+        "initialDeposit": 100.0,
+        "risk": 10.0,
+        "CCI": 74,
+        "EMA": 80,
+        "leverage": 15,
+        "ratio": 0.80,
+        "maxOrders": 1,
+        "ATR": 160,
+        "coeff": 8.59,
+        "status": "added"
+      },
+      {
+        "coinName": "UNIUSDT",
+        "timeFrame": "15",
+        "initialDeposit": 100.0,
+        "risk": 10.0,
+        "CCI": 70,
+        "EMA": 17,
+        "leverage": 15,
+        "ratio": 0.84,
+        "maxOrders": 2,
+        "ATR": 123,
+        "coeff": 9.25,
+        "status": "added"
+      }
+    ]
+  }
+]

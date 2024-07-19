@@ -1,5 +1,6 @@
 package com.zmn.pinbotserver.bybit;
 
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -63,5 +64,10 @@ public class TradeBotController {
     public ResponseEntity<List<TradeBot>> getTradeBots() {
         List<TradeBot> bots = tradeBotService.getTradeBots();
         return ResponseEntity.ok(bots);
+    }
+
+    @PostMapping("/initializeBotsFromFile")
+    public ResponseEntity<String> initializeBotsFromFile() {
+        return tradeBotService.initializeBotsFromFile();
     }
 }
