@@ -152,7 +152,7 @@ public class BybitApi {
      */
     public Candle getCandle(String symbol, String interval) {
         // Формирование URL для запроса данных свечей с параметрами, ограничивающими результат одним элементом
-        String url = String.format("https://api.bybit.com/v5/market/kline?category=inverse&symbol=%s&interval=%s&limit=1",
+        String url = String.format("https://api.bybit.com/v5/market/kline?category=inverse&symbol=%s&interval=%s&limit=2",
                 symbol, interval);
         System.out.println("ЗАПРОС: " + url); // Вывод URL запроса для отладки
         ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class); // Выполнение GET-запроса и получение ответа в виде ResponseEntity
@@ -162,10 +162,10 @@ public class BybitApi {
             Map<String, Object> result = (Map<String, Object>) response.getBody().get("result"); // Извлечение результата из ответа
             List<List<String>> klineList = (List<List<String>>) result.get("list"); // Получение списка данных свечей
             if (!klineList.isEmpty()) {
-                List<String> kline = klineList.getFirst(); // Получаем данные последней свечи
+                List<String> kline = klineList.getLast(); // Получаем данные последней свечи
 
                 // Создаем и возвращаем объект Candle
-                return new Candle(
+                Candle candle = new Candle(
                         Long.parseLong(kline.get(0)), // timestamp
                         Double.parseDouble(kline.get(1)), // open
                         Double.parseDouble(kline.get(2)), // high
@@ -174,6 +174,8 @@ public class BybitApi {
                         Double.parseDouble(kline.get(5)), // volume
                         Double.parseDouble(kline.get(6)) // turnover
                 );
+                System.out.println("Пара - " + symbol + " | Candle: " + candle.toString());
+                return candle;
             } else {
                 throw new RuntimeException("Нет данных о свечах");
             }

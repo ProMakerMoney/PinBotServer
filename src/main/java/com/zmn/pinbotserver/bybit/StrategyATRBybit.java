@@ -596,6 +596,13 @@ public class StrategyATRBybit {
         int startIndex = Math.max(candles.size() - candleCount, 0);
         List<Candle> recentCandles = candles.subList(startIndex, candles.size());
         candleHistory = recentCandles;
+
+        for (Candle candle : candles) {
+            double atr = calculateATR(candleHistory, ATR_length);
+            calcAlphaTrend(candle.getLow(), candle.getHigh(), atr, coeff, ATR_length);
+            double newCCI = calculateCCI();
+            double newEMA = calculateEMA(newCCI, EMA_PERIOD);
+        }
     }
 
     /**
