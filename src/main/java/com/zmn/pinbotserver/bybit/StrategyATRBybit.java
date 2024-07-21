@@ -376,7 +376,7 @@ public class StrategyATRBybit {
     }
 
     private boolean canOpenFirstLongPosition(double cci, double ema) {
-        boolean canOpen = direction == TYPE.LONG && longIsReady && cci > ema && !longIsReadyAVG && !longIsOpen && cci <= upperBound && !shortIsOpen && !shortIsReadyAVG;
+        boolean canOpen = direction == TYPE.LONG && longIsReady && cci > ema && !longIsReadyAVG && !longIsOpen && cci <= upperBound && !shortIsOpen && !shortIsReadyAVG && openOrders < MAXOrders;
         if (canOpen) {
             log("Условия для открытия первой LONG позиции выполнены.");
         }
@@ -384,7 +384,7 @@ public class StrategyATRBybit {
     }
 
     private boolean canOpenFirstShortPosition(double cci, double ema) {
-        boolean canOpen = direction == TYPE.SHORT && shortIsReady && cci < ema && !shortIsReadyAVG && !shortIsOpen && cci >= lowerBound && !longIsOpen && !longIsReadyAVG;
+        boolean canOpen = direction == TYPE.SHORT && shortIsReady && cci < ema && !shortIsReadyAVG && !shortIsOpen && cci >= lowerBound && !longIsOpen && !longIsReadyAVG  && openOrders < MAXOrders;
         if (canOpen) {
             log("Условия для открытия первой SHORT позиции выполнены.");
         }
@@ -392,7 +392,7 @@ public class StrategyATRBybit {
     }
 
     private boolean canAverageLongPosition(double cci, double ema) {
-        boolean canAverage = direction == TYPE.LONG && longIsReadyAVG && cci > ema && currentPrice < last_long_price && longIsOpen && !shortIsOpen && !shortIsReadyAVG;
+        boolean canAverage = direction == TYPE.LONG && longIsReadyAVG && cci > ema && currentPrice < last_long_price && longIsOpen && !shortIsOpen && !shortIsReadyAVG  && openOrders < MAXOrders;
         if (canAverage) {
             log("Условия для усреднения LONG позиции выполнены.");
         }
@@ -400,7 +400,7 @@ public class StrategyATRBybit {
     }
 
     private boolean canAverageShortPosition(double cci, double ema) {
-        boolean canAverage = direction == TYPE.SHORT && shortIsReadyAVG && cci < ema && currentPrice > last_short_price && !longIsOpen && shortIsOpen;
+        boolean canAverage = direction == TYPE.SHORT && shortIsReadyAVG && cci < ema && currentPrice > last_short_price && !longIsOpen && shortIsOpen  && openOrders < MAXOrders;
         if (canAverage) {
             log("Условия для усреднения SHORT позиции выполнены.");
         }
@@ -597,11 +597,16 @@ public class StrategyATRBybit {
         List<Candle> recentCandles = candles.subList(startIndex, candles.size());
         candleHistory = recentCandles;
 
-        for (Candle candle : candles) {
+        System.out.println("Загружено свечей: " + recentCandles.size());
+
+        for (Candle candle : candleHistory) {
             double atr = calculateATR(candleHistory, ATR_length);
             calcAlphaTrend(candle.getLow(), candle.getHigh(), atr, coeff, ATR_length);
             double newCCI = calculateCCI();
             double newEMA = calculateEMA(newCCI, EMA_PERIOD);
+
+
+
         }
     }
 

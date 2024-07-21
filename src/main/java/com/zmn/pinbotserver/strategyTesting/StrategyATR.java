@@ -385,7 +385,7 @@ public class StrategyATR {
      * @return true, если условия выполнены, иначе false.
      */
     private boolean canOpenFirstLongPosition(double cci, double ema) {
-        return direction == TYPE.LONG && longIsReady && cci > ema && !longIsReadyAVG && !longIsOpen && cci <= upperBound && !shortIsOpen && !shortIsReadyAVG;
+        return direction == TYPE.LONG && longIsReady && cci > ema && !longIsReadyAVG && !longIsOpen && cci <= upperBound && !shortIsOpen && !shortIsReadyAVG  && openOrders < MAXOrders;
     }
 
     /**
@@ -396,7 +396,7 @@ public class StrategyATR {
      * @return true, если условия выполнены, иначе false.
      */
     private boolean canOpenFirstShortPosition(double cci, double ema) {
-        return direction == TYPE.SHORT && shortIsReady && cci < ema && !shortIsReadyAVG && !shortIsOpen && cci >= lowerBound && !longIsOpen && !longIsReadyAVG;
+        return direction == TYPE.SHORT && shortIsReady && cci < ema && !shortIsReadyAVG && !shortIsOpen && cci >= lowerBound && !longIsOpen && !longIsReadyAVG  && openOrders < MAXOrders;
     }
 
     /**
@@ -407,7 +407,7 @@ public class StrategyATR {
      * @return true, если условия выполнены, иначе false.
      */
     private boolean canAverageLongPosition(double cci, double ema) {
-        return direction == TYPE.LONG && longIsReadyAVG && cci > ema && currentPrice < last_long_price && longIsOpen && !shortIsOpen && !shortIsReadyAVG;
+        return direction == TYPE.LONG && longIsReadyAVG && cci > ema && currentPrice < last_long_price && longIsOpen && !shortIsOpen && !shortIsReadyAVG  && openOrders < MAXOrders;
     }
 
     /**
@@ -418,7 +418,7 @@ public class StrategyATR {
      * @return true, если условия выполнены, иначе false.
      */
     private boolean canAverageShortPosition(double cci, double ema) {
-        return direction == TYPE.SHORT && shortIsReadyAVG && cci < ema && currentPrice > last_short_price && !longIsOpen && shortIsOpen;
+        return direction == TYPE.SHORT && shortIsReadyAVG && cci < ema && currentPrice > last_short_price && !longIsOpen && shortIsOpen  && openOrders < MAXOrders;
     }
 
     /**
