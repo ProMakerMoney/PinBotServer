@@ -39,7 +39,7 @@ public class Position {
         if (orders.size() == 1) {
             startPosition = order.executionTime; // Установка времени открытия позиции при первом ордере
         }
-        commission -= calcCommission(order); // Вычисление и вычитание комиссии
+        commission += calcCommission(order); // Вычисление и вычитание комиссии
         status = STATUS.OPEN; // Установка статуса позиции как открытой
     }
 

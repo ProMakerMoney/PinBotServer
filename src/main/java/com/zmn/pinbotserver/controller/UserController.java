@@ -1,7 +1,7 @@
 package com.zmn.pinbotserver.controller;
 
 
-import com.zmn.pinbotserver.model.coin.Coin;
+
 import com.zmn.pinbotserver.model.jwt.JwtRequest;
 import com.zmn.pinbotserver.model.jwt.JwtResponse;
 import com.zmn.pinbotserver.model.user.User;
@@ -17,7 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
-import java.util.List;
+
 
 @RestController
 public class UserController {
