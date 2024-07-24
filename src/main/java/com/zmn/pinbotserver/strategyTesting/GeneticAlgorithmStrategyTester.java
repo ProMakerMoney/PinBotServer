@@ -20,7 +20,7 @@ public class GeneticAlgorithmStrategyTester {
     private final StrategyTestingService strategyTestingService;
     private final Coin coin;
 
-    static final int POPULATION_SIZE = 1000;
+    static final int POPULATION_SIZE = 5000;
     static final int GENERATIONS = 250;
     static double MUTATION_RATE = 0.5;
     static final double CROSSOVER_RATE = 0.9;

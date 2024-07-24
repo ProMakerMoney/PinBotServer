@@ -1,6 +1,7 @@
 package com.zmn.pinbotserver.bybit;
 
 
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -74,6 +75,18 @@ public class TradeBotController {
     @PostMapping("/updateStrategiesMode")
     public ResponseEntity<String> updateStrategiesMode(@RequestParam String newMode) {
         tradeBotService.updateStrategiesMode(newMode);
-        return ResponseEntity.ok("Режим всех стратегий успешно обновлен.");
+        return ResponseEntity.ok("Режим всех стратегий успешно обновлен на '" + newMode + "'");
+    }
+
+    @GetMapping("/closeAllPairs")
+    public ResponseEntity<String> closeAllPairs() {
+        tradeBotService.closeAllPairs();
+        return ResponseEntity.ok("Инициировано закрытие всех пар");
+    }
+
+    @GetMapping("/closePair/{pairName}")
+    public ResponseEntity<String> closePair(@PathVariable String pairName) {
+        tradeBotService.closePair(pairName);
+        return ResponseEntity.ok("Инициировано закрытие пары " + pairName);
     }
 }

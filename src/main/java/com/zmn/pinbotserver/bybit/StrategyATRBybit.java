@@ -356,20 +356,20 @@ public class StrategyATRBybit {
     }
 
     private void checkLongAverageReady(double cci) {
-        if (direction == TYPE.LONG && longIsOpen && openOrders <= MAXOrders && cci > lowerBound) {
+        if (longIsOpen && openOrders <= MAXOrders && cci > lowerBound) {
             cciLongRollback = true;
         }
-        if (direction == TYPE.LONG && longIsOpen && openOrders <= MAXOrders && cciLongRollback && cci < lowerBound) {
+        if (longIsOpen && openOrders <= MAXOrders && cciLongRollback && cci < lowerBound) {
             longIsReadyAVG = true;
             log("Готовность усреднения LONG позиции.");
         }
     }
 
     private void checkShortAverageReady(double cci) {
-        if (direction == TYPE.SHORT && shortIsOpen && openOrders <= MAXOrders && cci < upperBound) {
+        if (shortIsOpen && openOrders <= MAXOrders && cci < upperBound) {
             cciShortRollback = true;
         }
-        if (direction == TYPE.SHORT && shortIsOpen && openOrders <= MAXOrders && cciShortRollback && cci > upperBound) {
+        if (shortIsOpen && openOrders <= MAXOrders && cciShortRollback && cci > upperBound) {
             shortIsReadyAVG = true;
             log("Готовность усреднения SHORT позиции.");
         }
@@ -409,7 +409,7 @@ public class StrategyATRBybit {
 
     private boolean canCloseLongPosition(double cci) {
         double liquidationLevelPer = 100.0 / LEVERAGE; // Уровень ликвидации в процентах
-        boolean canClose = (longIsOpen && (currentPrice <= last_long_price * (1 - liquidationLevelPer / 100)) ||
+        boolean canClose = (longIsOpen && (currentPrice <= position.getAverageEnterPrice() * (1 - liquidationLevelPer / 100)) ||
                 (cci > upperBound && longIsOpen && openOrders > 0));
         if (canClose) {
             log("Условия для закрытия LONG позиции выполнены.");
@@ -419,7 +419,7 @@ public class StrategyATRBybit {
 
     private boolean canCloseShortPosition(double cci) {
         double liquidationLevelPer = 100.0 / LEVERAGE; // Уровень ликвидации в процентах
-        boolean canClose = (shortIsOpen && (currentPrice >= last_short_price * (1 + liquidationLevelPer / 100)) ||
+        boolean canClose = (shortIsOpen && (currentPrice >= position.getAverageEnterPrice() * (1 + liquidationLevelPer / 100)) ||
                 (cci < lowerBound && shortIsOpen && openOrders > 0));
         if (canClose) {
             log("Условия для закрытия SHORT позиции выполнены.");
@@ -451,7 +451,7 @@ public class StrategyATRBybit {
         last_long_price = currentPrice;
         longIsReady = false;
         longIsOpen = true;
-        log("Открыта LONG позиция по цене: " + candle);
+        log("Открыта LONG позиция по цене: " + currentPrice + " | Объем:" + marginQTY);
     }
 
     private void averageLongPosition(Candle candle) {
@@ -476,12 +476,12 @@ public class StrategyATRBybit {
         last_long_price = currentPrice;
         longIsReadyAVG = false;
         cciLongRollback = false;
-        log("Усреднена LONG позиция по цене: " + currentPrice);
+        log("Усреднена LONG позиция по цене: " + currentPrice + " | Объем:" + marginQTY);
     }
 
-    private void closeLongPosition(Candle candle) {
+    public void closeLongPosition(Candle candle) {
 
-        if(Objects.equals(mode, "activate")) {
+        if(Objects.equals(mode, "activate") || Objects.equals(mode, "DNO")) {
             try {
                 api.placeOrder(tradingPair, "Sell", "Market", String.valueOf(marginQTY * openOrders), null);
             } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
@@ -502,7 +502,7 @@ public class StrategyATRBybit {
         cciLongRollback = false;
         openOrders = 0;
         positionHistory.add(position);
-        log("Закрыта LONG позиция по цене: " + currentPrice + "Прибыль: " + profit);
+        log("Закрыта LONG позиция по цене: " + currentPrice + "Сделка: \n" + position.toString());
     }
 
     private void openShortPosition(Candle candle) {
@@ -529,7 +529,7 @@ public class StrategyATRBybit {
         last_short_price = currentPrice;
         shortIsReady = false;
         shortIsOpen = true;
-        log("Открыта SHORT позиция по цене: " + currentPrice);
+        log("Открыта SHORT позиция по цене: " + currentPrice  + " | Объем:" + marginQTY);
     }
 
     private void averageShortPosition(Candle candle) {
@@ -554,12 +554,12 @@ public class StrategyATRBybit {
         last_short_price = currentPrice;
         shortIsReadyAVG = false;
         cciShortRollback = false;
-        log("Усреднена SHORT позиция по цене: " + currentPrice);
+        log("Усреднена SHORT позиция по цене: " + currentPrice  + " | Объем:" + marginQTY);
     }
 
-    private void closeShortPosition(Candle candle) {
+    public void closeShortPosition(Candle candle) {
 
-        if(Objects.equals(mode, "activate")) {
+        if(Objects.equals(mode, "activate") || Objects.equals(mode, "DNO")) {
             try {
                 api.placeOrder(tradingPair, "Buy", "Market", String.valueOf(marginQTY * openOrders), null);
             } catch (NoSuchAlgorithmException | InvalidKeyException | IOException e) {
@@ -579,7 +579,7 @@ public class StrategyATRBybit {
         shortIsReadyAVG = false;
         openOrders = 0;
         positionHistory.add(position);
-        log("Закрыта SHORT позиция по цене: " + currentPrice + "Прибыль: " + profit);
+        log("Закрыта SHORT позиция по цене: " + currentPrice + "Сделка: \n" + position.toString());
     }
 
     private void log(String message) {
@@ -604,9 +604,6 @@ public class StrategyATRBybit {
             calcAlphaTrend(candle.getLow(), candle.getHigh(), atr, coeff, ATR_length);
             double newCCI = calculateCCI();
             double newEMA = calculateEMA(newCCI, EMA_PERIOD);
-
-
-
         }
     }
 
@@ -636,5 +633,15 @@ public class StrategyATRBybit {
             }
         }
         return candles;
+    }
+
+    public void closeNow() {
+        if (longIsOpen){
+            closeLongPosition(api.getCandle(tradingPair, "15"));
+        } else if (shortIsOpen){
+            closeShortPosition(api.getCandle(tradingPair, "15"));
+        } else {
+            log("Нет открытых позиций");
+        }
     }
 }

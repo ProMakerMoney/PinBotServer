@@ -16,12 +16,14 @@ public class Position {
     TYPE side; // Направление позиции (LONG или SHORT)
     int leverage; // Плечо
     List<Order> orders; // Список ордеров
-    double commissionLEVEL = 0.1; // Комиссия в процентах
+    double commissionLEVEL = 0.055; // Комиссия в процентах
     double commission; // Общая комиссия
     @Getter
     double profit; // Прибыль
     double profitPer; // Прибыль в процентах
     STATUS status; // Статус позиции (Открыта или Закрыта)
+    @Getter
+    double averageEnterPrice = 0.0; // Средняя цена позиции
 
     // Конструктор для создания позиции
     public Position(String tradingPair, TYPE side, int leverage) {
@@ -40,6 +42,9 @@ public class Position {
             startPosition = order.executionTime; // Установка времени открытия позиции при первом ордере
         }
         commission += calcCommission(order); // Вычисление и вычитание комиссии
+
+        averageEnterPrice = (averageEnterPrice + order.executionPrice) / orders.size(); // Средняя цена позиции
+
         status = STATUS.OPEN; // Установка статуса позиции как открытой
     }
 
@@ -100,11 +105,11 @@ public class Position {
 
         // Рассчет прибыли в зависимости от типа позиции (LONG или SHORT)
         if (side == TYPE.LONG) {
-            // Для длинной позиции прибыль = (средняя цена продажи - средняя цена покупки) * объем * плечо
-            return (averageSellPrice - averageBuyPrice) * totalBuyVolume * leverage;
+            // Для длинной позиции прибыль = (средняя цена продажи - средняя цена покупки) * объем
+            return (averageSellPrice - averageBuyPrice) * totalBuyVolume;
         } else {
             // Для короткой позиции прибыль = (средняя цена покупки - средняя цена продажи) * объем * плечо
-            return (averageBuyPrice - averageSellPrice) * totalSellVolume * leverage;
+            return (averageBuyPrice - averageSellPrice) * totalSellVolume;
         }
     }
 
@@ -125,7 +130,7 @@ public class Position {
         }
 
         // Рассчет прибыли в процентах = (прибыль / начальная инвестиция) * 100
-        return (profit / initialInvestment) * 100;
+        return (profit / initialInvestment) * 100 * leverage;
     }
 
     @Override

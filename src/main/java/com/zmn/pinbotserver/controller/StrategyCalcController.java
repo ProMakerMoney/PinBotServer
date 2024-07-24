@@ -100,7 +100,7 @@ public class StrategyCalcController {
             String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
             Path filePath = Paths.get("historical_data", fileName);
             List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
-            int candleCount = 8640; // 3 (три) месяца
+            int candleCount = 5760; // 3 (три) месяца
             int startIndex = Math.max(candles.size() - candleCount, 0);
             List<Candle> recentCandles = candles.subList(startIndex, candles.size());
 

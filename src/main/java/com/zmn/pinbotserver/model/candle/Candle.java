@@ -92,7 +92,7 @@ public class Candle {
 
     @Override
     public String toString() {
-        return String.format("Time: %s\nOpen: %.4f\nHigh: %.4f\nLow: %.4f\nClose: %.4f\nVolume: %.4f\nQuote Volume: %.4f",
+        return String.format("Time: %s Open: %.4f High: %.4f Low: %.4f Close: %.4f Volume: %.4f Quote Volume: %.4f",
                 getTimeAsLocalDateTime(), open, high, low, close, volume, quoteVolume);
     }
 }

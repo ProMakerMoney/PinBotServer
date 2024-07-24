@@ -131,4 +131,17 @@ public class TradeBotService {
         saveTradeBots();
     }
 
+    public void closeAllPairs() {
+        for (StrategyATRBybit strategy : strategies) {
+            strategy.closeNow();
+        }
+    }
+
+    public void closePair(String pairName) {
+        for (StrategyATRBybit strategy : strategies) {
+            if (strategy.getTradingPair().equals(pairName)) {
+                strategy.closeNow();
+            }
+        }
+    }
 }
