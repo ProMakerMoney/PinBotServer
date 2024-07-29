@@ -37,7 +37,7 @@ public class UserController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @PostMapping("/authenticate")
+    @PostMapping("/auth")
     public JwtResponse ul(@RequestBody JwtRequest authenticationRequest) throws Exception {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(authenticationRequest.getUsername(), authenticationRequest.getPassword())
@@ -49,7 +49,7 @@ public class UserController {
         return new JwtResponse(jwt);
     }
 
-    @PostMapping("/register")
+    @PostMapping("/reg")
     public String registerUser(@RequestBody User user) throws Exception {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userService.add(user);

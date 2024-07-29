@@ -11,6 +11,9 @@ import com.zmn.pinbotserver.model.strategy.StrategyStats;
 import com.zmn.pinbotserver.service.getData.DataFillerService;
 import com.zmn.pinbotserver.strategyTesting.Strategy;
 import com.zmn.pinbotserver.strategyTesting.StrategyATR;
+import com.zmn.pinbotserver.strategyTesting.clearATR.ClearATR;
+import com.zmn.pinbotserver.strategyTesting.cross_EMA.CrossEmaParams;
+import com.zmn.pinbotserver.strategyTesting.cross_EMA.EMACrossStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +33,7 @@ public class StrategyTestingService {
     public StrategyStats testStrategy(Coin coin, StrategyParams strategyParams, List<Candle> candles) throws IOException {
 
         // Создание объекта стратегии с заданными параметрами и начальным депозитом
-        Strategy strategy = new Strategy(strategyParams, 100.0, coin.getMinTradingQty(), 10.0);
+        Strategy strategy = new Strategy(strategyParams, 50.0, coin.getMinTradingQty(), 10.0);
 
         // Обработка каждой свечки из подсписка с помощью стратегии
         for (Candle candle : candles) {
@@ -48,7 +51,7 @@ public class StrategyTestingService {
     public StrategyStats testStrategyATR(Coin coin, StrategyParamsATR strategyParams, List<Candle> candles) throws IOException {
 
         // Создание объекта стратегии с заданными параметрами и начальным депозитом
-        StrategyATR strategy = new StrategyATR(strategyParams, 100.0, coin.getMinTradingQty(), 10.0);
+        StrategyATR strategy = new StrategyATR(strategyParams, 50.0, coin.getMinTradingQty(), 10.0);
 
         // Обработка каждой свечки из подсписка с помощью стратегии
         for (Candle candle : candles) {
@@ -63,4 +66,37 @@ public class StrategyTestingService {
         return new StrategyStats(positions, orders, candles);
     }
 
+    public StrategyStats testStrategyClearATR(Coin coin, StrategyParamsClearATR params, List<Candle> candles) {
+        // Создание объекта стратегии с заданными параметрами и начальным депозитом
+        ClearATR strategy = new ClearATR(params, 100.0, coin.getMinTradingQty(), 10.0);
+
+        // Обработка каждой свечки из подсписка с помощью стратегии
+        for (Candle candle : candles) {
+            strategy.onPriceUpdate(candle);
+        }
+
+        // Получение истории позиций и ордеров из стратегии
+        List<Position> positions = strategy.getPositionHistory();
+        List<Order> orders = strategy.getOrderHistory();
+
+        // Создание и возвращение объекта StrategyStats
+        return new StrategyStats(positions, orders, candles);
+    }
+
+    public StrategyStats testCrossEma(Coin coin, CrossEmaParams params, List<Candle> candles) {
+        // Создание объекта стратегии с заданными параметрами и начальным депозитом
+        EMACrossStrategy strategy = new EMACrossStrategy(params, 100.0, coin.getMinTradingQty(), 10.0);
+
+        // Обработка каждой свечки из подсписка с помощью стратегии
+        for (Candle candle : candles) {
+            strategy.onPriceUpdate(candle);
+        }
+
+        // Получение истории позиций и ордеров из стратегии
+        List<Position> positions = strategy.getPositionHistory();
+        List<Order> orders = strategy.getOrderHistory();
+
+        // Создание и возвращение объекта StrategyStats
+        return new StrategyStats(positions, orders, candles);
+    }
 }

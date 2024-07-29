@@ -16,7 +16,7 @@ public class Position {
     TYPE side; // Направление позиции (LONG или SHORT)
     int leverage; // Плечо
     List<Order> orders; // Список ордеров
-    double commissionLEVEL = 0.055; // Комиссия в процентах
+    double commissionLEVEL = 0.1; // Комиссия в процентах
     double commission; // Общая комиссия
     @Getter
     double profit; // Прибыль

@@ -17,10 +17,10 @@ public class GenATR {
     private final StrategyTestingService strategyTestingService;
     private final Coin coin;
 
-    static final int POPULATION_SIZE = 1000;
-    static final int GENERATIONS = 300;
-    static double MUTATION_RATE = 0.5;
-    static final double CROSSOVER_RATE = 0.9;
+    static final int POPULATION_SIZE = 5000;
+    static final int GENERATIONS = 150;
+    static double MUTATION_RATE = 0.2;
+    static final double CROSSOVER_RATE = 0.8;
 
     public GenATR(List<Candle> candles, StrategyTestingService strategyTestingService, Coin coin) {
         this.candles = candles;
@@ -102,7 +102,7 @@ public class GenATR {
         }
 
         public boolean isValid() {
-            return percentageProfitTrades > 60 && totalTrades > 50 && totalProfit > 0;
+            return percentageProfitTrades > 60 && totalTrades > 40 && totalProfit > 0;
         }
     }
 
@@ -112,7 +112,7 @@ public class GenATR {
             population.add(new Individual(
                     ThreadLocalRandom.current().nextInt(1, 301),
                     ThreadLocalRandom.current().nextInt(1, 301),
-                    ThreadLocalRandom.current().nextInt(1, 26),
+                    ThreadLocalRandom.current().nextInt(1, 16),
                     ThreadLocalRandom.current().nextDouble(0.7, 4.1),
                     ThreadLocalRandom.current().nextInt(1, 11),
                     ThreadLocalRandom.current().nextInt(1, 200),
@@ -214,7 +214,7 @@ public class GenATR {
 
         int leverage = individual.leverage;
         if (ThreadLocalRandom.current().nextDouble() < MUTATION_RATE) {
-            leverage = ThreadLocalRandom.current().nextInt(1, 26);
+            leverage = ThreadLocalRandom.current().nextInt(1, 16);
         }
 
         double ratio = individual.ratio;

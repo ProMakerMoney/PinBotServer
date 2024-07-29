@@ -6,12 +6,16 @@ import com.zmn.pinbotserver.model.order.Order;
 import com.zmn.pinbotserver.model.order.Position;
 import com.zmn.pinbotserver.model.strategy.StrategyParams;
 import com.zmn.pinbotserver.model.strategy.StrategyParamsATR;
+import com.zmn.pinbotserver.model.strategy.StrategyParamsClearATR;
 import com.zmn.pinbotserver.model.strategy.StrategyStats;
 import com.zmn.pinbotserver.storage.CoinRepository;
 import com.zmn.pinbotserver.service.getData.DataFillerService;
 import com.zmn.pinbotserver.service.strategyTesting.StrategyTestingService;
 import com.zmn.pinbotserver.strategyTesting.GenATR;
 import com.zmn.pinbotserver.strategyTesting.GeneticAlgorithmStrategyTester;
+import com.zmn.pinbotserver.strategyTesting.clearATR.GenClearATR;
+import com.zmn.pinbotserver.strategyTesting.cross_EMA.CrossEmaParams;
+import com.zmn.pinbotserver.strategyTesting.cross_EMA.GenCrossEma;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -100,7 +105,7 @@ public class StrategyCalcController {
             String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
             Path filePath = Paths.get("historical_data", fileName);
             List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
-            int candleCount = 5760; // 3 (три) месяца
+            int candleCount = 2880; // 3 (три) месяца
             int startIndex = Math.max(candles.size() - candleCount, 0);
             List<Candle> recentCandles = candles.subList(startIndex, candles.size());
 
@@ -114,6 +119,89 @@ public class StrategyCalcController {
                     bestGeneticParams.getCCI(), bestGeneticParams.getEMA(), bestGeneticParams.getLEVERAGE(), bestGeneticParams.getRATIO(), bestGeneticParams.getMaxOpenOrder(), bestGeneticParams.getATR_Length(), bestGeneticParams.getCoeff(),
                     geneticStats.getProfitInDollars(), geneticStats.getTradeCount(), geneticStats.getProfitableTradePercentage(), geneticStats.getMaxDrawdown(), geneticStats.getTestDate());
 
+            writeResultsToCsv(coin.getCoinName(), coin.getTimeframe(), result);
+
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Монета с указанным ID не найдена.");
+        }
+    }
+
+    /**
+     * Endpoint для расчета стратегии ATR.
+     *
+     * @param id ID монеты.
+     * @return ResponseEntity с результатами расчета.
+     * @throws IOException
+     * @throws InterruptedException
+     */
+    @GetMapping("/api/strategy/calcClearATR/{id}")
+    public ResponseEntity<String> calculateStrategyClearATR(@PathVariable Long id) throws IOException, InterruptedException {
+        Optional<Coin> coinOptional = coinRepository.findById(id);
+
+        if (coinOptional.isPresent()) {
+            Coin coin = coinOptional.get();
+            String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
+            Path filePath = Paths.get("historical_data", fileName);
+            List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
+            int candleCount = 8640; // 3 (три) месяца
+            int startIndex = Math.max(candles.size() - candleCount, 0);
+            List<Candle> recentCandles = candles.subList(startIndex, candles.size());
+
+            GenClearATR tester = new GenClearATR(recentCandles, strategyTestingService, coin);
+            StrategyParamsClearATR bestGeneticParams = tester.run();
+
+            StrategyStats geneticStats = strategyTestingService.testStrategyClearATR(coin, bestGeneticParams, recentCandles);
+
+            // Формируем строку результата в формате CSV
+            String result = String.format("%d;%d;%.2f;%.2f;%d;%.2f;%.2f;%d",
+                    bestGeneticParams.getLEVERAGE(), bestGeneticParams.getATR_Length(), bestGeneticParams.getCoeff(),
+                    geneticStats.getProfitInDollars(), geneticStats.getTradeCount(), geneticStats.getProfitableTradePercentage(), geneticStats.getMaxDrawdown(), geneticStats.getTestDate());
+
+            writeResultsToCsv(coin.getCoinName(), coin.getTimeframe(), result);
+
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Монета с указанным ID не найдена.");
+        }
+    }
+
+    /**
+     * Endpoint для расчета стратегии ATR.
+     *
+     * @param id ID монеты.
+     * @return ResponseEntity с результатами расчета.
+     * @throws IOException
+     * @throws InterruptedException
+     */
+    @GetMapping("/api/strategy/calcEma/{id}")
+    public ResponseEntity<String> calculateCrossEMa(@PathVariable Long id) throws IOException, InterruptedException {
+        Optional<Coin> coinOptional = coinRepository.findById(id);
+
+        if (coinOptional.isPresent()) {
+            Coin coin = coinOptional.get();
+            String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
+            Path filePath = Paths.get("historical_data", fileName);
+            List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
+            int candleCount = 8640; // 3 (три) месяца
+            int startIndex = Math.max(candles.size() - candleCount, 0);
+            List<Candle> recentCandles = candles.subList(startIndex, candles.size());
+
+            GenCrossEma tester = new GenCrossEma(recentCandles, strategyTestingService, coin);
+            CrossEmaParams bestGeneticParams = tester.run();
+
+            StrategyStats geneticStats = strategyTestingService.testCrossEma(coin, bestGeneticParams, recentCandles);
+
+            // Формируем строку результата в формате CSV
+            String result = String.format("%d;%d;%d;%.2f;%.2f;%.2f;%.2f;%.2f",
+                    bestGeneticParams.getLEVERAGE(),
+                    bestGeneticParams.getFastEmaLength(),
+                    bestGeneticParams.getSlowEmaLength(),
+                    geneticStats.getProfitInDollars(),
+                    geneticStats.getTradeCount(),
+                    geneticStats.getProfitableTradePercentage(),
+                    geneticStats.getMaxDrawdown(),
+                    geneticStats.getTestDate()); // Предполагается, что testDate - это LocalDateTime или аналогичный тип
             writeResultsToCsv(coin.getCoinName(), coin.getTimeframe(), result);
 
             return ResponseEntity.ok(result);
