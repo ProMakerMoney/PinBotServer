@@ -16,6 +16,7 @@ import com.zmn.pinbotserver.strategyTesting.GeneticAlgorithmStrategyTester;
 import com.zmn.pinbotserver.strategyTesting.clearATR.GenClearATR;
 import com.zmn.pinbotserver.strategyTesting.cross_EMA.CrossEmaParams;
 import com.zmn.pinbotserver.strategyTesting.cross_EMA.GenCrossEma;
+import com.zmn.pinbotserver.strategyTesting.strategyNEW.Str;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -60,10 +61,10 @@ public class StrategyCalcController {
         if (coinOptional.isPresent()) {
             Coin coin = coinOptional.get();
             String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
-            Path filePath = Paths.get("C:\\Users\\PinBot\\IdeaProjects\\PinBotServer\\historical_data", fileName);
+            Path filePath = Paths.get("historical_data", fileName);
             List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
             // Определение количества свечек для обработки
-            int candleCount = 8640; // 3 (три) месяца
+            int candleCount = 14440; // 3 (три) месяца
             // Вычисление начального индекса для подсписка последних 8640 свечек
             int startIndex = Math.max(candles.size() - candleCount, 0);
             // Создание подсписка последних 8640 свечек
@@ -83,6 +84,37 @@ public class StrategyCalcController {
                     geneticStats.getProfitInDollars(), geneticStats.getTradeCount(), geneticStats.getProfitableTradePercentage(), geneticStats.getMaxDrawdown(), geneticStats.getTestDate());
 
             return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Монета с указанным ID не найдена.");
+        }
+    }
+
+    @GetMapping("/api/strategy/calcSTR/{id}")
+    public ResponseEntity<String> calculateStr(@PathVariable Long id) throws IOException, InterruptedException {
+        Optional<Coin> coinOptional = coinRepository.findById(id);
+
+        if (coinOptional.isPresent()) {
+            Coin coin = coinOptional.get();
+            String fileName = coin.getCoinName() + "_" + coin.getTimeframe() + "_history.csv";
+            Path filePath = Paths.get("historical_data", fileName);
+            List<Candle> candles = dataFillerService.readCandlesFromCsv(filePath);
+            // Определение количества свечек для обработки
+            int candleCount = 960; // 3 (три) месяца
+            // Вычисление начального индекса для подсписка последних 8640 свечек
+            int startIndex = Math.max(candles.size() - candleCount, 0);
+            // Создание подсписка последних 8640 свечек
+            List<Candle> recentCandles = candles.subList(startIndex, candles.size());
+
+            Str str = new Str();
+
+            for(Candle c : recentCandles) {
+                String signal = str.getSignal(c);
+                System.out.println("Свеча: " + c.getTimeAsLocalDateTime() + " Сигнал: " + signal);
+            }
+
+
+
+            return ResponseEntity.ok("Закончено");
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Монета с указанным ID не найдена.");
         }

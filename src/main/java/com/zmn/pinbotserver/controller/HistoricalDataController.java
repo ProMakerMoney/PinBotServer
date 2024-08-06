@@ -70,7 +70,7 @@ public class HistoricalDataController {
      * Метод для обновления исторических данных всех монет
      * @return ResponseEntity с сообщением об успешном выполнении или ошибке
      */
-    @GetMapping("/updateAllHistoricalData")
+    @GetMapping("/updateAll")
     public ResponseEntity<String> updateAllHistoricalData() {
         List<Coin> coins = coinRepository.findAll();
         LocalDateTime startDateTime = LocalDateTime.of(2024, 1, 1, 0, 0);

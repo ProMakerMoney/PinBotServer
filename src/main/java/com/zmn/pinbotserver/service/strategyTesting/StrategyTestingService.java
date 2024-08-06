@@ -33,7 +33,7 @@ public class StrategyTestingService {
     public StrategyStats testStrategy(Coin coin, StrategyParams strategyParams, List<Candle> candles) throws IOException {
 
         // Создание объекта стратегии с заданными параметрами и начальным депозитом
-        Strategy strategy = new Strategy(strategyParams, 50.0, coin.getMinTradingQty(), 10.0);
+        Strategy strategy = new Strategy(strategyParams, 100.0, coin.getMinTradingQty(), 10.0);
 
         // Обработка каждой свечки из подсписка с помощью стратегии
         for (Candle candle : candles) {
