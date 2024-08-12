@@ -95,4 +95,9 @@ public class Candle {
         return String.format("Time: %s Open: %.4f High: %.4f Low: %.4f Close: %.4f Volume: %.4f Quote Volume: %.4f",
                 getTimeAsLocalDateTime(), open, high, low, close, volume, quoteVolume);
     }
+
+    // Метод для расчета hl2 (среднее значение High и Low)
+    public double getHL2() {
+        return (high + low) / 2.0;
+    }
 }

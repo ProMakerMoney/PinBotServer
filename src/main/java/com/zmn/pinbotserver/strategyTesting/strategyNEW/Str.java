@@ -3,74 +3,72 @@ package com.zmn.pinbotserver.strategyTesting.strategyNEW;
 
 import com.zmn.pinbotserver.model.candle.Candle;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class Str {
 
+    private final LinkedList<Double> emaValues1 = new LinkedList<>();
+    private final LinkedList<Double> emaValues2 = new LinkedList<>();
+    private final LinkedList<Double> emaValues3 = new LinkedList<>();
+    private final LinkedList<Double> smaValues = new LinkedList<>();
 
-    private int linregLength = 11;
-    private int signalLength = 10;
-    private boolean smaSignal = true;
     private int atrPeriod = 1;
     private double atrMultiplier = 2.0;
 
-    private List<Candle> candles = new ArrayList<>();
-
-    private List<Double> xATRTrailingStops = new ArrayList<>();
+    private List<Candle> candles = new LinkedList<>();
+    private LinkedList<Double> xATRTrailingStops = new LinkedList<>();
     private double atr;
 
-        private double calculateSMA(int period, int index) {
-            double sum = 0.0;
-            for (int i = 0; i < period; i++) {
-                sum += candles.get(index - i).getClose();
-            }
-            return sum / period;
-        }
+    private String lastSignal = "hold"; // Хранение последнего сигнала
 
-        private double calculateEMA(int period, int index) {
+    // Общий метод для расчета EMA
+    private double calculateEMA(double newValue, int period, LinkedList<Double> emaValues) {
+        if (emaValues.isEmpty()) {
+            emaValues.add(newValue);
+            return newValue;
+        } else {
+            double lastEma = emaValues.getLast();
             double alpha = 2.0 / (period + 1);
-            double ema = candles.get(index).getClose();
-            for (int i = index - 1; i >= index - period + 1; i--) {
-                ema = alpha * candles.get(i).getClose() + (1 - alpha) * ema;
-            }
+            double ema = alpha * newValue + (1 - alpha) * lastEma;
+            emaValues.add(ema);
             return ema;
         }
+    }
 
-        private double calculateATR(int period, int index) {
-            double sum = 0.0;
-            for (int i = 0; i < period; i++) {
-                Candle currentCandle = candles.get(index - i);
-                Candle previousCandle = candles.get(index - i - 1);
-                double highLow = currentCandle.getHigh() - currentCandle.getLow();
-                double highClose = Math.abs(currentCandle.getHigh() - previousCandle.getClose());
-                double lowClose = Math.abs(currentCandle.getLow() - previousCandle.getClose());
-                sum += Math.max(highLow, Math.max(highClose, lowClose));
-            }
-            return sum / period;
+    // Метод для расчета SMA
+    public double calculateSMA(double newValue, int period) {
+        smaValues.add(newValue);
+        if (smaValues.size() > period) {
+            smaValues.removeFirst();
         }
 
-        private double[] calculateLinReg(int period) {
-            double[] result = new double[candles.size()];
-            for (int i = period - 1; i < candles.size(); i++) {
-                double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-                for (int j = 0; j < period; j++) {
-                    sumX += j;
-                    sumY += candles.get(i - j).getClose();
-                    sumXY += j * candles.get(i - j).getClose();
-                    sumX2 += j * j;
-                }
-                double slope = (period * sumXY - sumX * sumY) / (period * sumX2 - sumX * sumX);
-                double intercept = (sumY - slope * sumX) / period;
-                result[i] = slope * (period - 1) + intercept;
-            }
-            return result;
+        double sum = 0.0;
+        for (double value : smaValues) {
+            sum += value;
         }
+
+        return sum / smaValues.size();
+    }
+
+    // Метод для расчета ATR
+    private double calculateATR(int period, int index) {
+        double sum = 0.0;
+        for (int i = 0; i < period; i++) {
+            Candle currentCandle = candles.get(index - i);
+            Candle previousCandle = candles.get(index - i - 1);
+            double highLow = currentCandle.getHigh() - currentCandle.getLow();
+            double highClose = Math.abs(currentCandle.getHigh() - previousCandle.getClose());
+            double lowClose = Math.abs(currentCandle.getLow() - previousCandle.getClose());
+            sum += Math.max(highLow, Math.max(highClose, lowClose));
+        }
+        return sum / period;
+    }
 
     public String getSignal(Candle newCandle) {
         candles.add(newCandle);
         int length = candles.size();
-        if (length < linregLength || length < signalLength || length < atrPeriod + 1) {
+        if (length < 20) {
             return "not enough data";
         }
 
@@ -79,9 +77,9 @@ public class Str {
         }
 
         double nLoss = atr * atrMultiplier;
-        double src = candles.get(length - 1).getClose();
+        double src = newCandle.getClose();
         double prevSrc = candles.get(length - 2).getClose();
-        double prevXATRTrailingStop = (xATRTrailingStops.size() > 0) ? xATRTrailingStops.get(xATRTrailingStops.size() - 1) : src;
+        double prevXATRTrailingStop = (xATRTrailingStops.size() > 0) ? xATRTrailingStops.getLast() : src;
 
         double newXATRTrailingStop;
         if (src > prevXATRTrailingStop && prevSrc > prevXATRTrailingStop) {
@@ -96,16 +94,24 @@ public class Str {
 
         xATRTrailingStops.add(newXATRTrailingStop);
 
-        double ema = calculateEMA(1, length - 1);
-        boolean above = src > newXATRTrailingStop && ema > newXATRTrailingStop;
-        boolean below = src < newXATRTrailingStop && ema < newXATRTrailingStop;
+        double ema1 = calculateEMA(newCandle.getHL2(), 9, emaValues1);
+        double ema2 = calculateEMA(ema1, 9, emaValues2);
+        double ema3 = calculateEMA(ema2, 9, emaValues3);
 
-        System.out.printf("Candle: %s, ATR: %.4f, xATRTrailingStop: %.4f, EMA: %.4f, Above: %b, Below: %b\n",
-                newCandle, atr, newXATRTrailingStop, ema, above, below);
+        double out = 3 * (ema1 - ema2) + ema3;
+        double sma = calculateSMA(out, 10);
 
-        if (above) {
+        boolean above = src > newXATRTrailingStop && out > newXATRTrailingStop;
+        boolean below = src < newXATRTrailingStop && out < newXATRTrailingStop;
+
+        System.out.printf("Candle: %s, SMA: %.4f, ATR: %.4f, xATRTrailingStop: %.4f, Above: %b, Below: %b\n",
+                newCandle, sma, atr, newXATRTrailingStop, above, below);
+
+        if (above && !lastSignal.equals("buy")) {
+            lastSignal = "buy";
             return "buy";
-        } else if (below) {
+        } else if (below && !lastSignal.equals("sell")) {
+            lastSignal = "sell";
             return "sell";
         } else {
             return "hold";
