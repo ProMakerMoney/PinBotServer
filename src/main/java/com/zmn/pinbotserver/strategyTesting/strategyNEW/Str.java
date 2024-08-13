@@ -22,6 +22,8 @@ public class Str {
 
     private String lastSignal = "hold"; // Хранение последнего сигнала
 
+    double sma;
+
     // Общий метод для расчета EMA
     private double calculateEMA(double newValue, int period, LinkedList<Double> emaValues) {
         if (emaValues.isEmpty()) {
@@ -66,7 +68,8 @@ public class Str {
     }
 
     public String getSignal(Candle newCandle) {
-        candles.add(newCandle);
+        Candle heikinAshi = calculateHeikinAshi(newCandle);
+        candles.add(heikinAshi);
         int length = candles.size();
         if (length < 20) {
             return "not enough data";
@@ -94,18 +97,18 @@ public class Str {
 
         xATRTrailingStops.add(newXATRTrailingStop);
 
-        double ema1 = calculateEMA(newCandle.getHL2(), 9, emaValues1);
+        double ema1 = calculateEMA(heikinAshi.getHL2(), 9, emaValues1);
         double ema2 = calculateEMA(ema1, 9, emaValues2);
         double ema3 = calculateEMA(ema2, 9, emaValues3);
 
         double out = 3 * (ema1 - ema2) + ema3;
-        double sma = calculateSMA(out, 10);
+        sma = calculateSMA(out, 10);
 
         boolean above = src > newXATRTrailingStop && out > newXATRTrailingStop;
         boolean below = src < newXATRTrailingStop && out < newXATRTrailingStop;
 
         System.out.printf("Candle: %s, SMA: %.4f, ATR: %.4f, xATRTrailingStop: %.4f, Above: %b, Below: %b\n",
-                newCandle, sma, atr, newXATRTrailingStop, above, below);
+                heikinAshi, sma, atr, newXATRTrailingStop, above, below);
 
         if (above && !lastSignal.equals("buy")) {
             lastSignal = "buy";
@@ -117,5 +120,35 @@ public class Str {
             return "hold";
         }
     }
-}
 
+    private Candle calculateHeikinAshi(Candle newCandle) {
+        if (candles.isEmpty()) {
+            // Если это первая свеча Хейкен-Аши, она совпадает с первой обычной свечой
+            return newCandle;
+        }
+
+        // Получаем последнюю рассчитанную Хейкен-Аши свечу
+        Candle previousHaCandle = candles.get(candles.size() - 1);
+
+        // Рассчитываем цену закрытия для Хейкен-Аши
+        double haClose = (newCandle.getOpen() + newCandle.getHigh() + newCandle.getLow() + newCandle.getClose()) / 4;
+
+        // Рассчитываем цену открытия для Хейкен-Аши
+        double haOpen = (previousHaCandle.getOpen() + previousHaCandle.getClose()) / 2;
+
+        // Рассчитываем цену максимума для Хейкен-Аши
+        double haHigh = Math.max(newCandle.getHigh(), Math.max(haOpen, haClose));
+
+        // Рассчитываем цену минимума для Хейкен-Аши
+        double haLow = Math.min(newCandle.getLow(), Math.min(haOpen, haClose));
+
+        // Возвращаем новую свечу Хейкен-Аши
+        return new Candle(newCandle.getTime(), haHigh, haLow, haOpen, haClose, newCandle.getVolume(), newCandle.getQuoteVolume());
+    }
+
+
+    public double getLastSMA() {
+        return sma;
+    }
+
+}
